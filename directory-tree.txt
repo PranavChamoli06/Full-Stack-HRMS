@@ -1,0 +1,70 @@
+HRMS/
+├── logs/
+│   └── hrms-dev.log
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   ├── com/
+│   │   │       ├── example/
+│   │   │           ├── HRMS/
+│   │   │               ├── config/
+│   │   │               │   ├── CorsConfig.java
+│   │   │               │   ├── CustomAccessDeniedHandler.java
+│   │   │               │   ├── CustomAuthenticationEntryPoint.java
+│   │   │               │   ├── DataInitializer.java
+│   │   │               │   ├── JwtAuthenticationFilter.java
+│   │   │               │   ├── JwtService.java
+│   │   │               │   ├── OpenApiConfig.java
+│   │   │               │   └── SecurityConfig.java
+│   │   │               ├── controller/
+│   │   │               │   ├── AuthController.java
+│   │   │               │   └── EmployeeController.java
+│   │   │               ├── dto/
+│   │   │               │   ├── ApiResponse.java
+│   │   │               │   ├── AuthRequest.java
+│   │   │               │   ├── AuthResponse.java
+│   │   │               │   ├── EmployeeRequest.java
+│   │   │               │   ├── EmployeeResponse.java
+│   │   │               │   ├── ErrorResponse.java
+│   │   │               │   └── RefreshRequest.java
+│   │   │               ├── entity/
+│   │   │               │   ├── AuditLog.java
+│   │   │               │   ├── BaseEntity.java
+│   │   │               │   ├── Employee.java
+│   │   │               │   ├── Permission.java
+│   │   │               │   ├── Role.java
+│   │   │               │   └── User.java
+│   │   │               ├── exception/
+│   │   │               │   ├── ErrorCode.java
+│   │   │               │   ├── GlobalExceptionHandler.java
+│   │   │               │   └── ResourceNotFoundException.java
+│   │   │               ├── repository/
+│   │   │               │   ├── AuditLogRepository.java
+│   │   │               │   ├── EmployeeRepository.java
+│   │   │               │   └── UserRepository.java
+│   │   │               ├── service/
+│   │   │               │   ├── impl/
+│   │   │               │   │   └── EmployeeServiceImpl.java
+│   │   │               │   ├── CustomUserDetailsService.java
+│   │   │               │   └── EmployeeService.java
+│   │   │               └── HrmsApplication.java
+│   │   ├── resources/
+│   │       ├── db/
+│   │       │   ├── migration/
+│   │       │       └── V1__initial_schema.sql
+│   │       ├── static/
+│   │       ├── templates/
+│   │       ├── application-dev.properties
+│   │       ├── application-prod.properties
+│   │       └── application.properties
+│   ├── test/
+│       ├── java/
+│           ├── com/
+│               ├── example/
+│                   ├── HRMS/
+│                       └── HrmsApplicationTests.java
+├── DockerFile
+├── docker-compose.yml
+├── mvnw
+├── mvnw.cmd
+└── pom.xml
