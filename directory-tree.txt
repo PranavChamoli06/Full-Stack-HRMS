@@ -1,6 +1,4 @@
 HRMS/
-├── logs/
-│   └── hrms-dev.log
 ├── src/
 │   ├── main/
 │   │   ├── java/
@@ -12,11 +10,13 @@ HRMS/
 │   │   │               │   ├── CustomAccessDeniedHandler.java
 │   │   │               │   ├── CustomAuthenticationEntryPoint.java
 │   │   │               │   ├── DataInitializer.java
+│   │   │               │   ├── DatabaseHealthIndicator.java
 │   │   │               │   ├── JwtAuthenticationFilter.java
 │   │   │               │   ├── JwtService.java
 │   │   │               │   ├── OpenApiConfig.java
 │   │   │               │   └── SecurityConfig.java
 │   │   │               ├── controller/
+│   │   │               │   ├── AIController.java
 │   │   │               │   ├── AuthController.java
 │   │   │               │   └── EmployeeController.java
 │   │   │               ├── dto/
@@ -43,6 +43,8 @@ HRMS/
 │   │   │               │   ├── EmployeeRepository.java
 │   │   │               │   └── UserRepository.java
 │   │   │               ├── service/
+│   │   │               │   ├── ai/
+│   │   │               │   │   └── AIService.java
 │   │   │               │   ├── impl/
 │   │   │               │   │   └── EmployeeServiceImpl.java
 │   │   │               │   ├── CustomUserDetailsService.java
@@ -63,7 +65,9 @@ HRMS/
 │               ├── example/
 │                   ├── HRMS/
 │                       └── HrmsApplicationTests.java
-├── DockerFile
+├── Dockerfile
+├── HELP.md
+├── directory-tree.txt
 ├── docker-compose.yml
 ├── mvnw
 ├── mvnw.cmd

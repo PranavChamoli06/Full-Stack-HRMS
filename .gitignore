@@ -19,3 +19,6 @@ Thumbs.db
 
 # Docker
 mysql_data/
+
+#Directory tree file
+directory-tree.txt
