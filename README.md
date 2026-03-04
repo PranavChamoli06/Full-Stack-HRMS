@@ -1,6 +1,6 @@
 # 🚀 HRMS Backend (Enterprise Spring Boot Project)
 
-A production-ready **Human Resource Management System (HRMS) backend** built using **Spring Boot**.
+A production-ready **Hotel Reservation and Management System (HRMS) backend** built using **Spring Boot**.
 This project demonstrates enterprise backend architecture including **JWT authentication, role-based authorization, Flyway database migrations, Docker containerization, Swagger documentation, and monitoring with Spring Boot Actuator**.
 
 ---
