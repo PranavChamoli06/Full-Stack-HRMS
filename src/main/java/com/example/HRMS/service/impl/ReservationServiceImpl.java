@@ -7,6 +7,9 @@ import com.example.HRMS.repository.*;
 import com.example.HRMS.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -79,6 +82,32 @@ public class ReservationServiceImpl implements ReservationService {
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
         reservationRepository.delete(reservation);
+    }
+
+    @Override
+    public Page<ReservationResponse> getReservations(
+            String username,
+            LocalDate startDate,
+            Pageable pageable) {
+
+        Page<Reservation> reservations;
+
+        if (username != null) {
+
+            reservations = reservationRepository
+                    .findByUserUsername(username, pageable);
+
+        } else if (startDate != null) {
+
+            reservations = reservationRepository
+                    .findByCheckInDateAfter(startDate, pageable);
+
+        } else {
+
+            reservations = reservationRepository.findAll(pageable);
+        }
+
+        return reservations.map(this::mapToResponse);
     }
 
     private ReservationResponse mapToResponse(Reservation reservation) {

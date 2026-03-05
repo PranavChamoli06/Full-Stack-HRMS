@@ -5,6 +5,10 @@ import com.example.HRMS.dto.ReservationResponse;
 import com.example.HRMS.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -23,9 +27,17 @@ public class ReservationController {
     }
 
     @GetMapping
-    public List<ReservationResponse> getAll() {
+    public Page<ReservationResponse> getReservations(
 
-        return reservationService.getAll();
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) LocalDate startDate,
+            Pageable pageable) {
+
+        return reservationService.getReservations(
+                username,
+                startDate,
+                pageable
+        );
     }
 
     @GetMapping("/{id}")
