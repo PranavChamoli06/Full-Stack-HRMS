@@ -3,6 +3,7 @@ package com.example.HRMS.service;
 import com.example.HRMS.dto.ReservationRequest;
 import com.example.HRMS.dto.ReservationResponse;
 
+import com.example.HRMS.entity.ReservationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -18,6 +19,7 @@ public interface ReservationService {
     ReservationResponse getById(Long id);
 
     ReservationResponse update(Long id, ReservationRequest request);
+    ReservationResponse updateStatus(Long id, ReservationStatus status);
 
     void delete(Long id);
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
+import com.example.HRMS.entity.ReservationStatus;
 
 import java.util.List;
 
@@ -23,12 +24,27 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
+        if (request.getCheckInDate().isAfter(request.getCheckOutDate())) {
+            throw new RuntimeException("Check-in date cannot be after check-out date");
+        }
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        List<Reservation> overlappingReservations =
+                reservationRepository
+                        .findByRoomIdAndCheckOutDateAfterAndCheckInDateBefore(
+                                room.getId(),
+                                request.getCheckInDate(),
+                                request.getCheckOutDate()
+                        );
+
+        if (!overlappingReservations.isEmpty()) {
+            throw new RuntimeException("Room already booked for selected dates");
+        }
 
         Reservation reservation = new Reservation();
 
@@ -120,5 +136,28 @@ public class ReservationServiceImpl implements ReservationService {
                 .checkOutDate(reservation.getCheckOutDate())
                 .status(reservation.getStatus().name())
                 .build();
+    }
+
+    public ReservationResponse updateStatus(Long id, ReservationStatus status) {
+
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        ReservationStatus currentStatus = reservation.getStatus();
+
+        if (currentStatus == ReservationStatus.CANCELLED) {
+            throw new RuntimeException("Cancelled reservations cannot be modified");
+        }
+
+        if (currentStatus == ReservationStatus.CONFIRMED
+                && status == ReservationStatus.PENDING) {
+            throw new RuntimeException("Invalid status transition");
+        }
+
+        reservation.setStatus(status);
+
+        Reservation saved = reservationRepository.save(reservation);
+
+        return mapToResponse(saved);
     }
 }
