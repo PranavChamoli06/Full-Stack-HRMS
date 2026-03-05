@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { login } from "../services/authService";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,6 +19,7 @@ function LoginPage() {
       localStorage.setItem("token", data.accessToken);
 
       alert("Login successful");
+      navigate("/dashboard");
 
     } catch (error) {
       console.error("Login failed", error);
