@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import {
   getReservations,
   createReservation,
-  updateReservation
+  updateReservation,
+  cancelReservation
 } from "../services/reservationService";
 
 function ReservationsPage() {
@@ -35,22 +36,46 @@ function ReservationsPage() {
     setCheckOutDate(reservation.checkOutDate);
   };
 
-  const handleSubmit = async (e) => {
-      e.preventDefault();
+  const handleCancel = async (id) => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel this reservation?"
+    );
 
-      try {
-          const reservationData = {
-          username,
-          roomId: Number(roomNumber),
-          checkInDate,
-          checkOutDate
-        };
+    if (!confirmCancel) return;
+
+    try {
+      await cancelReservation(id);
+      alert("Reservation cancelled successfully");
+      fetchReservations();
+    } catch (error) {
+      console.error("Error cancelling reservation", error);
+    }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setUsername("");
+    setRoomNumber("");
+    setCheckInDate("");
+    setCheckOutDate("");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+
+      const reservationData = {
+        username,
+        roomId: Number(roomNumber),
+        checkInDate,
+        checkOutDate
+      };
 
       if (editingId) {
 
         await updateReservation(editingId, reservationData);
         alert("Reservation updated successfully");
-        setEditingId(null);
 
       } else {
 
@@ -59,17 +84,13 @@ function ReservationsPage() {
 
       }
 
-      setUsername("");
-      setRoomNumber("");
-      setCheckInDate("");
-      setCheckOutDate("");
-
+      resetForm();
       fetchReservations();
 
     } catch (error) {
       console.error("Error saving reservation", error);
-    } 
-};
+    }
+  };
 
   return (
 
@@ -77,7 +98,11 @@ function ReservationsPage() {
 
       <h2>Reservations</h2>
 
-      <h3>{editingId ? "Edit Reservation" : "Create Reservation"}</h3>
+      <h3>
+        {editingId
+          ? `Edit Reservation #${editingId}`
+          : "Create Reservation"}
+      </h3>
 
       <form onSubmit={handleSubmit}>
 
@@ -86,6 +111,10 @@ function ReservationsPage() {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          readOnly={editingId !== null}
+          style={{
+            backgroundColor: editingId !== null ? "#eee" : "white"
+          }}
         />
 
         <br /><br />
@@ -116,14 +145,29 @@ function ReservationsPage() {
         <br /><br />
 
         <button type="submit">
-            {editingId ? "Update Reservation" : "Create Reservation"}
+          {editingId ? "Update Reservation" : "Create Reservation"}
+        </button>
+
+        <button
+          type="button"
+          onClick={resetForm}
+          style={{ marginLeft: "10px" }}
+        >
+          {editingId ? "Cancel Edit" : "Clear Form"}
         </button>
 
       </form>
 
       <hr />
 
-      <table border="1" style={{ width: "80%", marginTop: "20px", borderCollapse: "collapse" }}>
+      <table
+        border="1"
+        style={{
+          width: "80%",
+          marginTop: "20px",
+          borderCollapse: "collapse"
+        }}
+      >
 
         <thead style={{ backgroundColor: "#f2f2f2" }}>
           <tr>
@@ -139,19 +183,56 @@ function ReservationsPage() {
         <tbody>
 
           {reservations.map((reservation) => (
-            <tr key={reservation.id}>
+
+            <tr
+              key={reservation.id}
+              style={{
+                textDecoration:
+                  reservation.status === "CANCELLED"
+                    ? "line-through"
+                    : "none",
+                color:
+                  reservation.status === "CANCELLED"
+                    ? "gray"
+                    : "black"
+              }}
+            >
 
               <td>{reservation.id}</td>
               <td>{reservation.username}</td>
               <td>{reservation.roomNumber}</td>
               <td>{reservation.checkInDate}</td>
               <td>{reservation.checkOutDate}</td>
+
               <td>
-                <button onClick={() => handleEdit(reservation)}>
+
+                <button
+                  disabled={reservation.status === "CANCELLED"}
+                  onClick={() => handleEdit(reservation)}
+                >
                   Edit
                 </button>
+
+                {reservation.status !== "CANCELLED" && (
+
+                  <button
+                    style={{
+                      marginLeft: "10px",
+                      color: "red"
+                    }}
+                    onClick={() =>
+                      handleCancel(reservation.id)
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                )}
+
               </td>
+
             </tr>
+
           ))}
 
         </tbody>
