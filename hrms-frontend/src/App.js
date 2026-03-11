@@ -4,6 +4,8 @@ import Navbar from "./components/Navbar";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import DashboardLayout from "./layouts/DashboardLayout";
+
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
@@ -13,8 +15,6 @@ function App() {
   return (
     <BrowserRouter>
 
-      <Navbar />
-
       <Routes>
 
         <Route path="/" element={<LoginPage />} />
@@ -23,7 +23,9 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <DashboardLayout>
+                <DashboardPage />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
@@ -32,7 +34,9 @@ function App() {
           path="/reservations"
           element={
             <ProtectedRoute>
-              <ReservationsPage />
+              <DashboardLayout>
+                <ReservationsPage />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
@@ -41,7 +45,9 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute>
+              <DashboardLayout>
               <AdminPage />
+              </DashboardLayout>
             </ProtectedRoute>
           }
         />
