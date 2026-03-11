@@ -4,13 +4,19 @@ import com.example.HRMS.config.JwtService;
 import com.example.HRMS.dto.AuthRequest;
 import com.example.HRMS.dto.AuthResponse;
 import com.example.HRMS.dto.RefreshRequest;
+import com.example.HRMS.repository.UserRepository;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +26,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     // ================================
     // LOGIN
@@ -36,6 +43,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody AuthRequest request) {
 
+        // Authenticate user
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -43,16 +51,24 @@ public class AuthController {
                 )
         );
 
+        // Fetch user from database
+        var user = userRepository
+                .findByUsername(request.getUsername())
+                .orElseThrow();
+
+        // Generate tokens
         String accessToken =
                 jwtService.generateAccessToken(request.getUsername());
 
         String refreshToken =
                 jwtService.generateRefreshToken(request.getUsername());
 
+        // Return response with role
         return ResponseEntity.ok(
                 AuthResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
+                        .role(user.getRole().name())
                         .build()
         );
     }
