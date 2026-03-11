@@ -14,19 +14,37 @@ function ReservationsPage() {
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const fetchReservations = async () => {
     try {
-      const data = await getReservations();
-      setReservations(data.content || data);
+
+      const data = await getReservations(page, 10);
+
+      setReservations(data.content);
+      setTotalPages(data.totalPages);
+
     } catch (error) {
       console.error("Error fetching reservations", error);
     }
   };
 
+  const nextPage = () => {
+    if (page < totalPages - 1) {
+      setPage(page + 1);
+    }
+  };
+
+  const previousPage = () => {
+    if (page > 0) {
+      setPage(page - 1);
+    }
+  };
+
   useEffect(() => {
     fetchReservations();
-  }, []);
+  }, [page]);
 
   const handleEdit = (reservation) => {
     setEditingId(reservation.id);
@@ -238,6 +256,24 @@ function ReservationsPage() {
         </tbody>
 
       </table>
+
+      {/* PAGINATION UI */}
+
+      <div style={{ marginTop: "20px" }}>
+
+        <button onClick={previousPage} disabled={page === 0}>
+          Previous
+        </button>
+
+        <span style={{ margin: "0 10px" }}>
+          Page {page + 1} of {totalPages}
+        </span>
+
+        <button onClick={nextPage} disabled={page === totalPages - 1}>
+          Next
+        </button>
+
+      </div>
 
     </div>
 

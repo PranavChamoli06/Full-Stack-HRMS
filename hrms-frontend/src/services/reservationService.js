@@ -1,7 +1,7 @@
 import api from "../api/axios";
 
-export const getReservations = async () => {
-  const response = await api.get("/v1/reservations");
+export const getReservations = async (page = 0, size = 10) => {
+  const response = await api.get(`/v1/reservations?page=${page}&size=${size}`);
   return response.data;
 };
 
