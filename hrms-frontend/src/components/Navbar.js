@@ -1,12 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function Navbar() {
 
-  const navigate = useNavigate();
-
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return;
+
+    localStorage.clear(); // ✅ clears all session data
+    window.location.href = "/"; // ✅ hard reset navigation
   };
 
   return (

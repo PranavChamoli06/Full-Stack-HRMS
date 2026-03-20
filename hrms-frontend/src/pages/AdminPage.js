@@ -35,28 +35,35 @@ function AdminPage() {
     }
   };
 
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
+ const handleCreateUser = async (e) => {
+  e.preventDefault();
 
-    try {
-      await createUser({
-        username: newUsername,
-        password: newPassword,
-        role: newRole
-      });
+  // ✅ VALIDATION START
+  if (!newUsername || !newPassword) {
+    alert("Username and password are required");
+    return;
+  }
+  // ✅ VALIDATION END
 
-      alert("User created successfully");
+  try {
+    await createUser({
+      username: newUsername,
+      password: newPassword,
+      role: newRole
+    });
 
-      setNewUsername("");
-      setNewPassword("");
-      setNewRole("STAFF");
+    alert("User created successfully");
 
-      fetchUsers();
+    setNewUsername("");
+    setNewPassword("");
+    setNewRole("STAFF");
 
-    } catch (error) {
-      console.error("Error creating user", error);
-    }
-  };
+    fetchUsers();
+
+  } catch (error) {
+    console.error("Error creating user", error);
+  }
+};
 
   return (
     <div className="container-fluid">

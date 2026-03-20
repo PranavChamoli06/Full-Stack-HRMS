@@ -8,6 +8,7 @@ import {
 
 function ReservationsPage() {
 
+  const [loading, setLoading] = useState(false);
   const [reservations, setReservations] = useState([]);
   const [roomNumber, setRoomNumber] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
@@ -18,11 +19,17 @@ function ReservationsPage() {
 
   const fetchReservations = async () => {
     try {
+      setLoading(true);
+
       const data = await getReservations(page, 10);
+
       setReservations(data.content);
       setTotalPages(data.totalPages);
+
     } catch (error) {
       console.error("Error fetching reservations", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,7 +77,20 @@ function ReservationsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ VALIDATION
+    if (!roomNumber || !checkInDate || !checkOutDate) {
+      alert("All fields are required");
+      return;
+    }
+
+    if (new Date(checkOutDate) < new Date(checkInDate)) {
+      alert("Check-out date cannot be before check-in date");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const reservationData = {
         roomId: Number(roomNumber),
         checkInDate,
@@ -90,11 +110,12 @@ function ReservationsPage() {
 
     } catch (error) {
       console.error("Error saving reservation", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-
     <div className="container-fluid">
 
       <h2 className="mb-4">Reservations</h2>
@@ -143,8 +164,13 @@ function ReservationsPage() {
             />
           </div>
 
-          <button className="btn btn-primary me-2">
-            {editingId ? "Update" : "Create"}
+          <button
+            className="btn btn-primary me-2"
+            disabled={loading}
+          >
+            {loading
+              ? "Processing..."
+              : (editingId ? "Update" : "Create")}
           </button>
 
           <button
@@ -158,6 +184,9 @@ function ReservationsPage() {
         </form>
 
       </div>
+
+      {/* LOADING */}
+      {loading && <div className="text-center my-2">Loading...</div>}
 
       {/* TABLE */}
       <div className="card p-3">
@@ -177,47 +206,55 @@ function ReservationsPage() {
 
           <tbody>
 
-            {reservations.map((reservation) => (
+            {reservations.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center">
+                  No reservations found
+                </td>
+              </tr>
+            ) : (
+              reservations.map((reservation) => (
 
-              <tr
+                <tr
                   key={reservation.id}
                   className={
-                  reservation.status === "CANCELLED"
+                    reservation.status === "CANCELLED"
                       ? "table-danger text-decoration-line-through"
                       : ""
                   }
-              >
+                >
 
-                <td>{reservation.id}</td>
-                <td>{reservation.username}</td>
-                <td>{reservation.roomNumber}</td>
-                <td>{reservation.checkInDate}</td>
-                <td>{reservation.checkOutDate}</td>
+                  <td>{reservation.id}</td>
+                  <td>{reservation.username}</td>
+                  <td>{reservation.roomNumber}</td>
+                  <td>{reservation.checkInDate}</td>
+                  <td>{reservation.checkOutDate}</td>
 
-                <td>
+                  <td>
 
-                  <button
-                    className="btn btn-sm btn-warning me-2"
-                    disabled={reservation.status === "CANCELLED"}
-                    onClick={() => handleEdit(reservation)}
-                  >
-                    Edit
-                  </button>
-
-                  {reservation.status !== "CANCELLED" && (
                     <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleCancel(reservation.id)}
+                      className="btn btn-sm btn-warning me-2"
+                      disabled={reservation.status === "CANCELLED"}
+                      onClick={() => handleEdit(reservation)}
                     >
-                      Cancel
+                      Edit
                     </button>
-                  )}
 
-                </td>
+                    {reservation.status !== "CANCELLED" && (
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleCancel(reservation.id)}
+                      >
+                        Cancel
+                      </button>
+                    )}
 
-              </tr>
+                  </td>
 
-            ))}
+                </tr>
+
+              ))
+            )}
 
           </tbody>
 

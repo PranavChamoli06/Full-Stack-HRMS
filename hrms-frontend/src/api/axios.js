@@ -14,4 +14,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ✅ RESPONSE INTERCEPTOR (THIS IS STEP 1 CORE)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+
+    if (error.response) {
+
+      if (error.response.status === 401) {
+        alert("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
+
+      if (error.response.status === 403) {
+        alert("Access denied");
+      }
+
+    } else {
+      alert("Server not reachable");
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;
