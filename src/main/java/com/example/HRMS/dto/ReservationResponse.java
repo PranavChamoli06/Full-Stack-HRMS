@@ -3,6 +3,7 @@ package com.example.HRMS.dto;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -11,8 +12,6 @@ public class ReservationResponse {
 
     private Long id;
 
-    private String username;
-
     private String roomNumber;
 
     private LocalDate checkInDate;
@@ -20,4 +19,11 @@ public class ReservationResponse {
     private LocalDate checkOutDate;
 
     private String status;
+
+    private String guestEmail;
+    private String guestPhone;
+    private String guestName;
+    private BigDecimal totalPrice;
+
+    private String createdBy; // who created booking (admin/staff)
 }

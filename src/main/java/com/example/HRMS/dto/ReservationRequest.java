@@ -9,10 +9,13 @@ import java.time.LocalDate;
 @Setter
 public class ReservationRequest {
 
-    private Long roomId;
+    private Integer roomNumber;  // ✅ FIXED
 
     private LocalDate checkInDate;
 
     private LocalDate checkOutDate;
 
+    private String guestEmail;
+    private String guestPhone;
+    private String guestName;
 }

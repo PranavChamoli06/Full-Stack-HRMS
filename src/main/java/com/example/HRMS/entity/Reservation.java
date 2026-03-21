@@ -21,6 +21,10 @@ public class Reservation extends BaseEntity {
 
     private LocalDate checkOutDate;
 
+    private String guestEmail;
+    private String guestPhone;
+    private String guestName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ReservationStatus status;
@@ -31,6 +35,6 @@ public class Reservation extends BaseEntity {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "room_id")
+    @JoinColumn(name = "room_number")
     private Room room;
 }

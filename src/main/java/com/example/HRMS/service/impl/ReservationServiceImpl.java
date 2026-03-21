@@ -9,12 +9,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import com.example.HRMS.entity.ReservationStatus;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final RoomPricingRepository roomPricingRepository; // ✅ pricing repo
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
@@ -31,7 +34,7 @@ public class ReservationServiceImpl implements ReservationService {
             throw new RuntimeException("Check-in date cannot be after check-out date");
         }
 
-        // Get logged-in user from JWT
+        // ✅ Logged-in user
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -40,13 +43,16 @@ public class ReservationServiceImpl implements ReservationService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Room room = roomRepository.findById(request.getRoomId())
+        Integer roomNumber = request.getRoomNumber();
+
+        Room room = roomRepository.findById(roomNumber)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
+        // ✅ Overlap check
         List<Reservation> overlappingReservations =
                 reservationRepository
-                        .findByRoomIdAndCheckOutDateAfterAndCheckInDateBefore(
-                                room.getId(),
+                        .findByRoomRoomNumberAndCheckOutDateAfterAndCheckInDateBefore(
+                                room.getRoomNumber(),
                                 request.getCheckInDate(),
                                 request.getCheckOutDate()
                         );
@@ -61,6 +67,12 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setRoom(room);
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
+
+        // ✅ Guest details
+        reservation.setGuestName(request.getGuestName());
+        reservation.setGuestEmail(request.getGuestEmail());
+        reservation.setGuestPhone(request.getGuestPhone());
+
         reservation.setStatus(ReservationStatus.PENDING);
 
         Reservation saved = reservationRepository.save(reservation);
@@ -70,7 +82,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public List<ReservationResponse> getAll() {
-
         return reservationRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -79,7 +90,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public ReservationResponse getById(Long id) {
-
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
@@ -92,7 +102,6 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        // Only update dates
         if (request.getCheckInDate() != null) {
             reservation.setCheckInDate(request.getCheckInDate());
         }
@@ -101,7 +110,18 @@ public class ReservationServiceImpl implements ReservationService {
             reservation.setCheckOutDate(request.getCheckOutDate());
         }
 
-        // Validate dates
+        if (request.getGuestName() != null) {
+            reservation.setGuestName(request.getGuestName());
+        }
+
+        if (request.getGuestEmail() != null) {
+            reservation.setGuestEmail(request.getGuestEmail());
+        }
+
+        if (request.getGuestPhone() != null) {
+            reservation.setGuestPhone(request.getGuestPhone());
+        }
+
         if (reservation.getCheckInDate().isAfter(reservation.getCheckOutDate())) {
             throw new RuntimeException("Check-in date cannot be after check-out date");
         }
@@ -113,7 +133,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public void delete(Long id) {
-
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
@@ -129,46 +148,78 @@ public class ReservationServiceImpl implements ReservationService {
         Page<Reservation> reservations;
 
         if (username != null) {
-
-            reservations = reservationRepository
-                    .findByUserUsername(username, pageable);
-
+            reservations = reservationRepository.findByUserUsername(username, pageable);
         } else if (startDate != null) {
-
-            reservations = reservationRepository
-                    .findByCheckInDateAfter(startDate, pageable);
-
+            reservations = reservationRepository.findByCheckInDateAfter(startDate, pageable);
         } else {
-
             reservations = reservationRepository.findAll(pageable);
         }
 
         return reservations.map(this::mapToResponse);
     }
 
+    // ================= PRICE CALCULATION =================
+
+    private BigDecimal calculateTotalPrice(Reservation reservation) {
+
+        if (reservation.getRoom() == null) return BigDecimal.ZERO;
+
+        // ✅ ENUM SAFE
+        Room.RoomType roomType = reservation.getRoom().getRoomType();
+
+        RoomPricing pricing = roomPricingRepository.findByRoomType(roomType)
+                .orElseThrow(() -> new RuntimeException("Pricing not found"));
+
+        long nights = ChronoUnit.DAYS.between(
+                reservation.getCheckInDate(),
+                reservation.getCheckOutDate()
+        );
+
+        if (nights <= 0) return BigDecimal.ZERO;
+
+        return pricing.getPricePerNight()
+                .multiply(BigDecimal.valueOf(nights));
+    }
+
+    // ================= RESPONSE MAPPING =================
+
     private ReservationResponse mapToResponse(Reservation reservation) {
 
-        String username = null;
         String roomNumber = null;
-
-        if (reservation.getUser() != null) {
-            username = reservation.getUser().getUsername();
-        }
+        String guestName = null;
+        String guestEmail = null;
+        String guestPhone = null;
+        String createdBy = null;
 
         if (reservation.getRoom() != null) {
-            roomNumber = reservation.getRoom().getRoomNumber();
+            roomNumber = String.valueOf(reservation.getRoom().getRoomNumber());
         }
+
+        if (reservation.getUser() != null) {
+            createdBy = reservation.getUser().getUsername();
+        }
+
+        guestName = reservation.getGuestName();
+        guestEmail = reservation.getGuestEmail();
+        guestPhone = reservation.getGuestPhone();
+
+        BigDecimal totalPrice = calculateTotalPrice(reservation);
 
         return ReservationResponse.builder()
                 .id(reservation.getId())
-                .username(username)
                 .roomNumber(roomNumber)
+                .guestName(guestName)
+                .guestEmail(guestEmail)
+                .guestPhone(guestPhone)
+                .createdBy(createdBy)
                 .checkInDate(reservation.getCheckInDate())
                 .checkOutDate(reservation.getCheckOutDate())
                 .status(reservation.getStatus().name())
+                .totalPrice(totalPrice)
                 .build();
     }
 
+    @Override
     public ReservationResponse updateStatus(Long id, ReservationStatus status) {
 
         Reservation reservation = reservationRepository.findById(id)

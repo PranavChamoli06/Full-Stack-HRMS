@@ -6,6 +6,7 @@ import com.example.HRMS.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final ReservationRepository reservationRepository;
 
     @Override
-    public Double getTotalRevenue() {
+    public BigDecimal getTotalRevenue() {
         return reservationRepository.calculateTotalRevenue();
     }
 
@@ -32,12 +33,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    public Map<String, Double> getMonthlyRevenue() {
+    public Map<String, BigDecimal> getMonthlyRevenue() {
 
-        Map<String, Double> revenueMap = new HashMap<>();
+        Map<String, BigDecimal> revenueMap = new HashMap<>();
 
         reservationRepository.getMonthlyRevenue()
-                .forEach(row -> revenueMap.put((String) row[0], (Double) row[1]));
+                .forEach(row -> revenueMap.put(
+                        (String) row[0],
+                        (BigDecimal) row[1]
+                ));
 
         return revenueMap;
     }

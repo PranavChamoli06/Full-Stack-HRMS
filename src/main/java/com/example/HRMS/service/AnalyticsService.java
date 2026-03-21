@@ -1,14 +1,15 @@
 package com.example.HRMS.service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 public interface AnalyticsService {
 
-    Double getTotalRevenue();
+    BigDecimal getTotalRevenue();
 
     Double getOccupancyRate();
 
-    Map<String, Double> getMonthlyRevenue();
+    Map<String, BigDecimal> getMonthlyRevenue();
 
     Double getCancellationRate();
 }

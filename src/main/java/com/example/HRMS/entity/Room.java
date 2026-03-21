@@ -1,22 +1,27 @@
 package com.example.HRMS.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
+import java.time.LocalDateTime;
+
+@Data
 @Entity
 @Table(name = "rooms")
-public class Room extends BaseEntity {
+public class Room {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer roomNumber;
 
-    private String roomNumber;
+    @Enumerated(EnumType.STRING)
+    private RoomType roomType;
 
-    private String type;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    private Double pricePerNight;
+    public enum RoomType {
+        Standard, Deluxe, Suite
+    }
+
+    // getters & setters
 }

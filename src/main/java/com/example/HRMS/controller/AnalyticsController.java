@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @RestController
@@ -16,7 +17,7 @@ public class AnalyticsController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/revenue")
-    public Double getRevenue() {
+    public BigDecimal getRevenue() {
         return analyticsService.getTotalRevenue();
     }
 
@@ -28,7 +29,7 @@ public class AnalyticsController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/monthly-revenue")
-    public Map<String, Double> getMonthlyRevenue() {
+    public Map<String, BigDecimal> getMonthlyRevenue() {
         return analyticsService.getMonthlyRevenue();
     }
 
