@@ -5,6 +5,7 @@ import com.example.HRMS.dto.ReservationResponse;
 import com.example.HRMS.entity.*;
 import com.example.HRMS.repository.*;
 import com.example.HRMS.service.ReservationService;
+import com.example.HRMS.service.PricingService; // ✅ NEW
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -12,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.security.core.Authentication;
@@ -25,7 +25,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
-    private final RoomPricingRepository roomPricingRepository; // ✅ pricing repo
+    private final RoomPricingRepository roomPricingRepository;
+    private final PricingService pricingService; // ✅ NEW
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
@@ -34,7 +35,6 @@ public class ReservationServiceImpl implements ReservationService {
             throw new RuntimeException("Check-in date cannot be after check-out date");
         }
 
-        // ✅ Logged-in user
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -68,7 +68,6 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
 
-        // ✅ Guest details
         reservation.setGuestName(request.getGuestName());
         reservation.setGuestEmail(request.getGuestEmail());
         reservation.setGuestPhone(request.getGuestPhone());
@@ -158,30 +157,51 @@ public class ReservationServiceImpl implements ReservationService {
         return reservations.map(this::mapToResponse);
     }
 
-    // ================= PRICE CALCULATION =================
+    // ================= UPDATED PRICE CALCULATION =================
 
     private BigDecimal calculateTotalPrice(Reservation reservation) {
 
         if (reservation.getRoom() == null) return BigDecimal.ZERO;
 
-        // ✅ ENUM SAFE
         Room.RoomType roomType = reservation.getRoom().getRoomType();
 
         RoomPricing pricing = roomPricingRepository.findByRoomType(roomType)
                 .orElseThrow(() -> new RuntimeException("Pricing not found"));
 
-        long nights = ChronoUnit.DAYS.between(
-                reservation.getCheckInDate(),
-                reservation.getCheckOutDate()
-        );
+        LocalDate checkIn = reservation.getCheckInDate();
+        LocalDate checkOut = reservation.getCheckOutDate();
 
-        if (nights <= 0) return BigDecimal.ZERO;
+        if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
+            return BigDecimal.ZERO;
+        }
 
-        return pricing.getPricePerNight()
-                .multiply(BigDecimal.valueOf(nights));
+        BigDecimal basePrice = pricing.getPricePerNight();
+        BigDecimal totalPrice = BigDecimal.ZERO;
+
+        LocalDate currentDate = checkIn;
+
+        // 🔥 Per-day dynamic pricing
+        while (currentDate.isBefore(checkOut)) {
+
+            double calculated = pricingService.calculatePrice(
+                    basePrice.doubleValue(),
+                    currentDate
+            );
+
+            // 🔥 DEBUG LOG
+            System.out.println("Date: " + currentDate +
+                    " | Base: " + basePrice +
+                    " | Final: " + calculated);
+
+            totalPrice = totalPrice.add(BigDecimal.valueOf(calculated));
+
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return totalPrice;
     }
 
-    // ================= RESPONSE MAPPING =================
+    // ================= RESPONSE =================
 
     private ReservationResponse mapToResponse(Reservation reservation) {
 
