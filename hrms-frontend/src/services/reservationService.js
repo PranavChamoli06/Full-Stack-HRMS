@@ -19,3 +19,14 @@ export const cancelReservation = async (id) => {
   const response = await api.patch(`/reservations/${id}/status?status=CANCELLED`);
   return response.data;
 };
+
+// 🆕 PRICE PREVIEW
+export const previewPrice = async (data) => {
+  return api.get("/reservations/preview-price", {
+    params: {
+      roomNumber: data.roomNumber,
+      checkInDate: data.checkInDate,
+      checkOutDate: data.checkOutDate
+    }
+  });
+};

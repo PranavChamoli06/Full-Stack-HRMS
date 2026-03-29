@@ -35,10 +35,20 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ReservationResponse create(ReservationRequest request) {
 
+        // ✅ VALIDATION (NEW — IMPORTANT)
+        if (request.getRoomNumber() == null) {
+            throw new RuntimeException("Room number is required");
+        }
+
+        if (request.getCheckInDate() == null || request.getCheckOutDate() == null) {
+            throw new RuntimeException("Dates are required");
+        }
+
         if (request.getCheckInDate().isAfter(request.getCheckOutDate())) {
             throw new RuntimeException("Check-in date cannot be after check-out date");
         }
 
+        // ✅ USER
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -47,12 +57,13 @@ public class ReservationServiceImpl implements ReservationService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // ✅ ROOM (NOW SAFE)
         Integer roomNumber = request.getRoomNumber();
 
         Room room = roomRepository.findById(roomNumber)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
-        // ✅ Overlap check
+        // ✅ OVERLAP CHECK
         List<Reservation> overlappingReservations =
                 reservationRepository
                         .findByRoomRoomNumberAndCheckOutDateAfterAndCheckInDateBefore(
@@ -65,6 +76,7 @@ public class ReservationServiceImpl implements ReservationService {
             throw new RuntimeException("Room already booked for selected dates");
         }
 
+        // ✅ CREATE RESERVATION
         Reservation reservation = new Reservation();
 
         reservation.setUser(user);
@@ -184,13 +196,19 @@ public class ReservationServiceImpl implements ReservationService {
 
         LocalDate currentDate = checkIn;
 
-        // 🔥 Per-day dynamic pricing
         while (currentDate.isBefore(checkOut)) {
 
-            double calculated = pricingService.calculatePrice(
-                    basePrice.doubleValue(),
-                    currentDate
-            );
+            double calculated;
+
+            try {
+                calculated = pricingService.calculatePrice(
+                        basePrice.doubleValue(),
+                        currentDate
+                );
+            } catch (Exception e) {
+                logger.error("Pricing error for date {}: {}", currentDate, e.getMessage());
+                calculated = basePrice.doubleValue(); // fallback
+            }
 
             logger.debug("Pricing -> Date: {} | Base: {} | Final: {}",
                     currentDate, basePrice, calculated);
