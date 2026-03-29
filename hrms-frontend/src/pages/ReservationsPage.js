@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
+
 import {
   getReservations,
   createReservation,
@@ -10,32 +13,35 @@ import {
 function ReservationsPage() {
 
   const [loading, setLoading] = useState(false);
+
   const [reservations, setReservations] = useState([]);
+  const [allReservations, setAllReservations] = useState([]);
+
+  const [selectedBookings, setSelectedBookings] = useState([]);
 
   const [roomNumber, setRoomNumber] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
 
-  // 🔥 NEW GUEST STATES
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
 
   const [editingId, setEditingId] = useState(null);
 
-  // 🔥 PAGINATION
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // 🔥 PRICE
   const [preview, setPreview] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // ================= FETCH =================
 
   const fetchReservations = async () => {
     try {
       setLoading(true);
-
       const data = await getReservations(page, size);
 
       setReservations(data.content);
@@ -43,15 +49,55 @@ function ReservationsPage() {
       setTotalElements(data.totalElements);
 
     } catch (error) {
-      console.error("Error fetching reservations", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAllReservations = async () => {
+    try {
+      const data = await getReservations(0, 1000);
+      setAllReservations(data.content);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchReservations();
+    fetchAllReservations();
   }, [page, size]);
+
+  // ================= HELPERS =================
+
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [y, m, d] = dateStr.split("-");
+    return new Date(y, m - 1, d);
+  };
+
+  const normalize = (date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const getCheckIn = (r) =>
+    r.checkInDate || r.check_in_date || r.checkIn;
+
+  const getCheckOut = (r) =>
+    r.checkOutDate || r.check_out_date || r.checkOut;
+
+  // ================= CALENDAR LOGIC =================
+
+  const getBookingsForDate = (date) => {
+    const current = normalize(date);
+
+    return allReservations.filter((r) => {
+      const start = normalize(parseDate(getCheckIn(r)));
+      const end = normalize(parseDate(getCheckOut(r)));
+
+      return current >= start && current < end;
+    });
+  };
 
   // ================= PAGINATION =================
 
@@ -70,321 +116,209 @@ function ReservationsPage() {
 
   // ================= FORM =================
 
-  const handleEdit = (reservation) => {
-    setEditingId(reservation.id);
+  const handleEdit = (r) => {
+    setEditingId(r.id);
 
-    setRoomNumber(reservation.roomNumber);
-    setCheckInDate(reservation.checkInDate);
-    setCheckOutDate(reservation.checkOutDate);
+    setRoomNumber(r.roomNumber);
+    setCheckInDate(getCheckIn(r));
+    setCheckOutDate(getCheckOut(r));
 
-    // 🔥 NEW
-    setGuestName(reservation.guestName || "");
-    setGuestEmail(reservation.guestEmail || "");
-    setGuestPhone(reservation.guestPhone || "");
+    setGuestName(r.guestName || "");
+    setGuestEmail(r.guestEmail || "");
+    setGuestPhone(r.guestPhone || "");
 
     setPreview(null);
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this reservation?")) return;
-
-    try {
-      await cancelReservation(id);
-      alert("Reservation cancelled");
-      fetchReservations();
-    } catch (error) {
-      console.error("Error cancelling reservation", error);
-    }
+    await cancelReservation(id);
+    fetchReservations();
+    fetchAllReservations();
   };
 
   const resetForm = () => {
     setEditingId(null);
-
     setRoomNumber("");
     setCheckInDate("");
     setCheckOutDate("");
-
-    // 🔥 NEW
     setGuestName("");
     setGuestEmail("");
     setGuestPhone("");
-
     setPreview(null);
   };
 
   // ================= PREVIEW =================
 
   const handlePreviewPrice = async () => {
+    const res = await previewPrice({
+      roomNumber: Number(roomNumber),
+      checkInDate,
+      checkOutDate
+    });
 
-    if (!roomNumber || !checkInDate || !checkOutDate) {
-      alert("Fill all fields first");
-      return;
-    }
-
-    if (new Date(checkOutDate) <= new Date(checkInDate)) {
-      alert("Invalid dates");
-      return;
-    }
-
-    try {
-      const res = await previewPrice({
-        roomNumber: Number(roomNumber),
-        checkInDate,
-        checkOutDate
-      });
-
-      setPreview(res.data);
-
-    } catch (error) {
-      console.error("Error fetching price preview", error);
-      alert("Preview failed");
-    }
+    setPreview(res.data);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!roomNumber || !checkInDate || !checkOutDate) {
-      alert("All fields required");
-      return;
+    const data = {
+      roomNumber: Number(roomNumber),
+      checkInDate,
+      checkOutDate,
+      guestName,
+      guestEmail,
+      guestPhone
+    };
+
+    if (editingId) {
+      await updateReservation(editingId, data);
+    } else {
+      await createReservation(data);
     }
 
-    if (new Date(checkOutDate) <= new Date(checkInDate)) {
-      alert("Invalid dates");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const reservationData = {
-        roomNumber: Number(roomNumber),
-        checkInDate,
-        checkOutDate,
-
-        // 🔥 NEW
-        guestName,
-        guestEmail,
-        guestPhone
-      };
-
-      if (editingId) {
-        await updateReservation(editingId, reservationData);
-        alert("Updated successfully");
-      } else {
-        await createReservation(reservationData);
-        alert("Created successfully");
-      }
-
-      resetForm();
-      fetchReservations();
-
-    } catch (error) {
-      console.error("Error saving reservation", error);
-    } finally {
-      setLoading(false);
-    }
+    resetForm();
+    fetchReservations();
+    fetchAllReservations();
   };
 
   return (
     <div className="container-fluid">
 
-      <h2 className="mb-4">Reservations</h2>
+      <h2>Reservations</h2>
 
-      {/* ================= FORM ================= */}
+      {/* 🔥 CALENDAR */}
       <div className="card p-3 mb-4">
 
-        <h4>
-          {editingId
-            ? `Edit Reservation #${editingId}`
-            : "Create Reservation"}
-        </h4>
+        <h4>Booking Calendar</h4>
 
-        <form onSubmit={handleSubmit}>
+        <Calendar
+          value={selectedDate}
+          onChange={(date) => {
+            setSelectedDate(date);
+            setSelectedBookings(getBookingsForDate(date));
+          }}
+          tileContent={({ date, view }) => {
+            if (view !== "month") return null;
 
-          <input
-            className="form-control mb-2"
-            type="number"
-            placeholder="Room Number"
-            value={roomNumber}
-            onChange={(e) => setRoomNumber(e.target.value)}
-            readOnly={editingId !== null}
-          />
+            const count = getBookingsForDate(date).length;
 
-          {/* 🔥 NEW FIELDS */}
-          <input
-            className="form-control mb-2"
-            type="text"
-            placeholder="Guest Name"
-            value={guestName}
-            onChange={(e) => setGuestName(e.target.value)}
-          />
+            return count > 0 ? (
+              <div style={{ fontSize: "10px", color: "red" }}>
+                {count}
+              </div>
+            ) : null;
+          }}
+        />
 
-          <input
-            className="form-control mb-2"
-            type="email"
-            placeholder="Guest Email"
-            value={guestEmail}
-            onChange={(e) => setGuestEmail(e.target.value)}
-          />
+      </div>
 
-          <input
-            className="form-control mb-2"
-            type="text"
-            placeholder="Guest Phone"
-            value={guestPhone}
-            onChange={(e) => setGuestPhone(e.target.value)}
-          />
+      {/* 🔥 SELECTED BOOKINGS TABLE */}
+      <div className="card p-3 mb-4">
 
-          <input
-            className="form-control mb-2"
-            type="date"
-            value={checkInDate}
-            onChange={(e) => setCheckInDate(e.target.value)}
-          />
+        <h5>Bookings on Selected Date</h5>
 
-          <input
-            className="form-control mb-2"
-            type="date"
-            value={checkOutDate}
-            onChange={(e) => setCheckOutDate(e.target.value)}
-          />
-
-          <button
-            type="button"
-            className="btn btn-info mb-2 me-2"
-            onClick={handlePreviewPrice}
-          >
-            Preview Price
-          </button>
-
-          <button className="btn btn-primary me-2" disabled={loading}>
-            {loading ? "Processing..." : (editingId ? "Update" : "Create")}
-          </button>
-
-          <button
-            type="button"
-            onClick={resetForm}
-            className="btn btn-secondary"
-          >
-            Clear
-          </button>
-
-        </form>
-
-        {preview !== null && (
-          <div className="alert alert-success mt-3">
-            <h5>Total Price: ₹{preview}</h5>
-          </div>
+        {selectedBookings.length === 0 ? (
+          <p>No bookings</p>
+        ) : (
+          <table className="table table-sm mt-2">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Room</th>
+                <th>Guest</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedBookings.map((b) => (
+                <tr key={b.id}>
+                  <td>{b.id}</td>
+                  <td>{b.roomNumber}</td>
+                  <td>{b.guestName}</td>
+                  <td>{getCheckIn(b)}</td>
+                  <td>{getCheckOut(b)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
       </div>
 
-      {/* ================= TABLE ================= */}
+      {/* FORM */}
+      <div className="card p-3 mb-4">
+
+        <h4>{editingId ? "Edit" : "Create"} Reservation</h4>
+
+        <form onSubmit={handleSubmit}>
+
+          <input className="form-control mb-2" placeholder="Room"
+            value={roomNumber} onChange={e => setRoomNumber(e.target.value)} />
+
+          <input className="form-control mb-2" placeholder="Name"
+            value={guestName} onChange={e => setGuestName(e.target.value)} />
+
+          <input className="form-control mb-2" placeholder="Email"
+            value={guestEmail} onChange={e => setGuestEmail(e.target.value)} />
+
+          <input className="form-control mb-2" placeholder="Phone"
+            value={guestPhone} onChange={e => setGuestPhone(e.target.value)} />
+
+          <input type="date" className="form-control mb-2"
+            value={checkInDate} onChange={e => setCheckInDate(e.target.value)} />
+
+          <input type="date" className="form-control mb-2"
+            value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
+
+          <button type="button" className="btn btn-info me-2"
+            onClick={handlePreviewPrice}>Preview</button>
+
+          <button className="btn btn-primary">Save</button>
+
+        </form>
+
+        {preview && <div className="mt-2">₹ {preview}</div>}
+
+      </div>
+
+      {/* TABLE */}
       <div className="card p-3">
 
-        {/* HEADER */}
-        <div className="d-flex justify-content-between mb-3">
-          <div>
-            <strong>Total Reservations: {totalElements}</strong>
-          </div>
+        <strong>Total: {totalElements}</strong>
 
-          <div>
-            <label className="me-2">Page Size:</label>
-            <select value={size} onChange={handlePageSizeChange}>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
-        </div>
-
-        <table className="table table-bordered table-striped">
+        <table className="table">
 
           <thead>
             <tr>
               <th>ID</th>
-              <th>User</th>
               <th>Room</th>
               <th>Guest</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Check In</th>
-              <th>Check Out</th>
-              <th>Actions</th>
+              <th>Dates</th>
+              <th></th>
             </tr>
           </thead>
 
           <tbody>
-
-            {reservations.length === 0 ? (
-              <tr>
-                <td colSpan="9" className="text-center">
-                  No reservations found
+            {reservations.map(r => (
+              <tr key={r.id}>
+                <td>{r.id}</td>
+                <td>{r.roomNumber}</td>
+                <td>{r.guestName}</td>
+                <td>{getCheckIn(r)} → {getCheckOut(r)}</td>
+                <td>
+                  <button onClick={() => handleEdit(r)}>Edit</button>
+                  <button onClick={() => handleCancel(r.id)}>Cancel</button>
                 </td>
               </tr>
-            ) : (
-              reservations.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{r.username}</td>
-                  <td>{r.roomNumber}</td>
-                  <td>{r.guestName}</td>
-                  <td>{r.guestEmail}</td>
-                  <td>{r.guestPhone}</td>
-                  <td>{r.checkInDate}</td>
-                  <td>{r.checkOutDate}</td>
-                  <td>
-
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => handleEdit(r)}
-                    >
-                      Edit
-                    </button>
-
-                    {r.status !== "CANCELLED" && (
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleCancel(r.id)}
-                      >
-                        Cancel
-                      </button>
-                    )}
-
-                  </td>
-                </tr>
-              ))
-            )}
-
+            ))}
           </tbody>
 
         </table>
 
-        {/* PAGINATION */}
-        <div className="d-flex justify-content-between mt-3">
-
-          <button
-            className="btn btn-secondary"
-            onClick={previousPage}
-            disabled={page === 0}
-          >
-            Previous
-          </button>
-
-          <span>
-            Page {page + 1} of {totalPages}
-          </span>
-
-          <button
-            className="btn btn-secondary"
-            onClick={nextPage}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </button>
-
-        </div>
+        <button disabled={page === 0} onClick={previousPage}>Prev</button>
+        <button disabled={page >= totalPages - 1} onClick={nextPage}>Next</button>
 
       </div>
 
