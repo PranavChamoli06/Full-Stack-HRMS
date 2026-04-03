@@ -6,8 +6,8 @@ function Navbar() {
     const confirmLogout = window.confirm("Are you sure you want to logout?");
     if (!confirmLogout) return;
 
-    localStorage.clear(); // ✅ clears all session data
-    window.location.href = "/"; // ✅ hard reset navigation
+    localStorage.clear();
+    window.location.href = "/";
   };
 
   return (

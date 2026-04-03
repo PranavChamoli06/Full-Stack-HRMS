@@ -39,14 +39,10 @@ function ReservationsPage() {
   // ================= FETCH =================
 
   const fetchReservations = async () => {
-    try {
-      const data = await getReservations(page, size);
-      setReservations(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
-    } catch {
-      Swal.fire("Error", "Failed to fetch reservations", "error");
-    }
+    const data = await getReservations(page, size);
+    setReservations(data.content);
+    setTotalPages(data.totalPages);
+    setTotalElements(data.totalElements);
   };
 
   const fetchAllReservations = async () => {
@@ -56,8 +52,11 @@ function ReservationsPage() {
 
   useEffect(() => {
     fetchReservations();
-    fetchAllReservations();
   }, [page, size]);
+
+  useEffect(() => {
+    fetchAllReservations();
+  }, []);
 
   // ================= HELPERS =================
 
@@ -69,11 +68,8 @@ function ReservationsPage() {
   const normalize = (d) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-  const getCheckIn = (r) =>
-    r.checkInDate || r.check_in_date;
-
-  const getCheckOut = (r) =>
-    r.checkOutDate || r.check_out_date;
+  const getCheckIn = (r) => r.checkInDate || r.check_in_date;
+  const getCheckOut = (r) => r.checkOutDate || r.check_out_date;
 
   const getBookingsForDate = (date) => {
     const current = normalize(date);
@@ -86,16 +82,20 @@ function ReservationsPage() {
     });
   };
 
+  const getHeatClass = (count) => {
+    if (count === 0) return null;
+    if (count <= 2) return "heat-low";
+    if (count <= 5) return "heat-medium";
+    return "heat-high";
+  };
+
   // ================= ACTIONS =================
 
   const handleEdit = (r) => {
-
     setEditingId(r.id);
-
     setRoomNumber(r.roomNumber);
     setCheckInDate(getCheckIn(r));
     setCheckOutDate(getCheckOut(r));
-
     setGuestName(r.guestName || "");
     setGuestEmail(r.guestEmail || "");
     setGuestPhone(r.guestPhone || "");
@@ -104,31 +104,27 @@ function ReservationsPage() {
   };
 
   const handleCancel = async (id) => {
-
     const result = await Swal.fire({
       title: "Cancel Reservation?",
-      text: "This will mark it as cancelled",
       icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes"
+      showCancelButton: true
     });
 
     if (!result.isConfirmed) return;
 
-    try {
-      await cancelReservation(id);
+    await cancelReservation(id);
+    Swal.fire("Cancelled!", "", "success");
 
-      Swal.fire("Cancelled!", "Reservation cancelled", "success");
-
-      fetchReservations();
-      fetchAllReservations();
-
-    } catch {
-      Swal.fire("Error", "Cancel failed", "error");
-    }
+    fetchReservations();
+    fetchAllReservations();
   };
 
   const handlePreview = async () => {
+    if (!roomNumber || !checkInDate || !checkOutDate) {
+      Swal.fire("Error", "Fill all fields first", "warning");
+      return;
+    }
+
     try {
       const res = await previewPrice({
         roomNumber: Number(roomNumber),
@@ -137,7 +133,6 @@ function ReservationsPage() {
       });
 
       Swal.fire("Preview Price", `₹ ${res.data}`, "info");
-
     } catch {
       Swal.fire("Error", "Preview failed", "error");
     }
@@ -146,7 +141,14 @@ function ReservationsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = {
+    const result = await Swal.fire({
+      title: editingId ? "Update?" : "Create?",
+      showCancelButton: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    const payload = {
       roomNumber: Number(roomNumber),
       checkInDate,
       checkOutDate,
@@ -155,37 +157,22 @@ function ReservationsPage() {
       guestPhone
     };
 
-    const result = await Swal.fire({
-      title: editingId ? "Update Reservation?" : "Create Reservation?",
-      icon: "question",
-      showCancelButton: true
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      if (editingId) {
-        await updateReservation(editingId, data);
-        Swal.fire("Updated!", "Reservation updated", "success");
-      } else {
-        await createReservation(data);
-        Swal.fire("Created!", "Reservation created", "success");
-      }
-
-      setEditingId(null);
-      setRoomNumber("");
-      setCheckInDate("");
-      setCheckOutDate("");
-      setGuestName("");
-      setGuestEmail("");
-      setGuestPhone("");
-
-      fetchReservations();
-      fetchAllReservations();
-
-    } catch {
-      Swal.fire("Error", "Operation failed", "error");
+    if (editingId) {
+      await updateReservation(editingId, payload);
+    } else {
+      await createReservation(payload);
     }
+
+    setEditingId(null);
+    setRoomNumber("");
+    setCheckInDate("");
+    setCheckOutDate("");
+    setGuestName("");
+    setGuestEmail("");
+    setGuestPhone("");
+
+    fetchReservations();
+    fetchAllReservations();
   };
 
   // ================= UI =================
@@ -198,23 +185,31 @@ function ReservationsPage() {
       {/* CALENDAR */}
       <div className="card p-3 mb-4">
 
-        <h4>Booking Calendar</h4>
-
         <Calendar
           value={selectedDate}
           onChange={(date) => {
             setSelectedDate(date);
             setSelectedBookings(getBookingsForDate(date));
           }}
+
+          tileClassName={({ date, view }) => {
+            if (view !== "month") return null;
+
+            const count = getBookingsForDate(date).length;
+            const isSelected =
+              date.toDateString() === selectedDate.toDateString();
+
+            if (isSelected) return "selected-date";
+            return getHeatClass(count);
+          }}
+
           tileContent={({ date, view }) => {
             if (view !== "month") return null;
 
             const count = getBookingsForDate(date).length;
 
-            return count > 0 ? (
-              <div style={{ fontSize: "10px", color: "red" }}>
-                {count}
-              </div>
+            return count ? (
+              <div style={{ fontSize: "10px" }}>{count}</div>
             ) : null;
           }}
         />
@@ -224,129 +219,72 @@ function ReservationsPage() {
       {/* SELECTED BOOKINGS */}
       <div className="card p-3 mb-4">
 
-        <h5>Bookings on Selected Date</h5>
+        <h5>Bookings on {selectedDate.toDateString()}</h5>
 
         {selectedBookings.length === 0 ? (
           <p>No bookings</p>
         ) : (
-          <table className="table table-sm">
-
+          <table className="table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Room</th>
                 <th>Guest</th>
-                <th>Check-In</th>
-                <th>Check-Out</th>
                 <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {selectedBookings.map((b) => {
-
-                const isCancelled = b.status === "CANCELLED";
-
-                return (
-                  <tr key={b.id}
-                    style={{
-                      backgroundColor: isCancelled ? "#ffcccc" : ""
-                    }}
-                  >
-                    <td>{b.id}</td>
-                    <td>{b.roomNumber}</td>
-                    <td>{b.guestName}</td>
-                    <td>{getCheckIn(b)}</td>
-                    <td>{getCheckOut(b)}</td>
-
-                    <td>
-                      {isCancelled ? (
-                        <span style={{ color: "red", fontWeight: "bold" }}>
-                          CANCELLED
-                        </span>
-                      ) : (
-                        <>
-                          <button
-                            className="btn btn-success btn-sm me-2"
-                            onClick={() => handleEdit(b)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleCancel(b.id)}
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {selectedBookings.map(b => (
+                <tr key={b.id}>
+                  <td>{b.id}</td>
+                  <td>{b.roomNumber}</td>
+                  <td>{b.guestName}</td>
+                  <td>
+                    <button className="btn btn-success me-2" onClick={() => handleEdit(b)}>Edit</button>
+                    <button className="btn btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
-
           </table>
         )}
 
       </div>
 
       {/* FORM */}
-      <div className="card p-3 mb-4" ref={formRef}>
-
-        <h4>{editingId ? "Edit Reservation" : "Create Reservation"}</h4>
+      <div ref={formRef} className="card p-3 mb-4">
 
         <form onSubmit={handleSubmit}>
 
-          <input className="form-control mb-2" placeholder="Room"
-            value={roomNumber} onChange={e => setRoomNumber(e.target.value)} />
+          <input placeholder="Room Number" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="form-control mb-2" />
+          <input type="date" value={checkInDate} onChange={e => setCheckInDate(e.target.value)} className="form-control mb-2" />
+          <input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="form-control mb-2" />
 
-          <input className="form-control mb-2" placeholder="Guest Name"
-            value={guestName} onChange={e => setGuestName(e.target.value)} />
+          <input placeholder="Guest Name" value={guestName} onChange={e => setGuestName(e.target.value)} className="form-control mb-2" />
+          <input placeholder="Guest Email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="form-control mb-2" />
+          <input placeholder="Guest Phone" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} className="form-control mb-2" />
 
-          <input className="form-control mb-2" placeholder="Email"
-            value={guestEmail} onChange={e => setGuestEmail(e.target.value)} />
-
-          <input className="form-control mb-2" placeholder="Phone"
-            value={guestPhone} onChange={e => setGuestPhone(e.target.value)} />
-
-          <input type="date" className="form-control mb-2"
-            value={checkInDate} onChange={e => setCheckInDate(e.target.value)} />
-
-          <input type="date" className="form-control mb-2"
-            value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
-
-          <button
-            type="button"
-            className="btn btn-info me-2"
-            onClick={handlePreview}
-          >
-            Preview
-          </button>
-
-          <button className="btn btn-success">
-            {editingId ? "Update" : "Save"}
-          </button>
+          <button type="button" className="btn btn-info me-2" onClick={handlePreview}>Preview</button>
+          <button className="btn btn-primary">Save</button>
 
         </form>
 
       </div>
 
-      {/* TABLE */}
+      {/* MAIN TABLE */}
       <div className="card p-3">
 
-        <strong>Total: {totalElements}</strong>
+        <h5>Total: {totalElements}</h5>
 
         <table className="table">
-
           <thead>
             <tr>
               <th>ID</th>
               <th>Room</th>
               <th>Guest</th>
               <th>Dates</th>
-              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -356,49 +294,28 @@ function ReservationsPage() {
               const isCancelled = r.status === "CANCELLED";
 
               return (
-                <tr key={r.id}
-                  style={{
-                    backgroundColor: isCancelled ? "#ffcccc" : ""
-                  }}
-                >
+                <tr key={r.id} style={{ background: isCancelled ? "#ffcccc" : "" }}>
                   <td>{r.id}</td>
                   <td>{r.roomNumber}</td>
                   <td>{r.guestName}</td>
                   <td>{getCheckIn(r)} → {getCheckOut(r)}</td>
 
                   <td>
-                    {isCancelled ? (
-                      <span style={{ color: "red", fontWeight: "bold" }}>
-                        CANCELLED
-                      </span>
-                    ) : (
-                      <span style={{ color: "green" }}>
-                        ACTIVE
-                      </span>
+                    {!isCancelled && (
+                      <>
+                        <button className="btn btn-success me-2" onClick={() => handleEdit(r)}>Edit</button>
+                        <button className="btn btn-danger" onClick={() => handleCancel(r.id)}>Cancel</button>
+                      </>
                     )}
                   </td>
                 </tr>
               );
             })}
           </tbody>
-
         </table>
 
-        <button
-          className="btn btn-warning me-2"
-          disabled={page === 0}
-          onClick={() => setPage(page - 1)}
-        >
-          Prev
-        </button>
-
-        <button
-          className="btn btn-success"
-          disabled={page >= totalPages - 1}
-          onClick={() => setPage(page + 1)}
-        >
-          Next
-        </button>
+        <button className="btn btn-warning me-2" disabled={page === 0} onClick={() => setPage(page - 1)}>Prev</button>
+        <button className="btn btn-success" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Next</button>
 
       </div>
 

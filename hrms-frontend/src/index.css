@@ -12,6 +12,7 @@ code {
     monospace;
 }
 
+/* 🔴 OLD booked-date (keep if needed) */
 .react-calendar__tile.booked-date {
   background: red !important;
   color: white !important;
