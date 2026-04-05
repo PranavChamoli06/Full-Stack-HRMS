@@ -20,9 +20,20 @@ export const cancelReservation = async (id) => {
   return response.data;
 };
 
-// 🆕 PRICE PREVIEW
+// PRICE PREVIEW
 export const previewPrice = async (data) => {
   return api.get("/reservations/preview-price", {
+    params: {
+      roomNumber: data.roomNumber,
+      checkInDate: data.checkInDate,
+      checkOutDate: data.checkOutDate
+    }
+  });
+};
+
+// AVAILABILITY CHECK
+export const checkAvailability = async (data) => {
+  return api.get("/reservations/availability", {
     params: {
       roomNumber: data.roomNumber,
       checkInDate: data.checkInDate,

@@ -60,4 +60,12 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .build());
     }
+
+    // Booking Conflict Exception
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<String> handleBookingConflict(BookingConflictException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ex.getMessage());
+    }
 }

@@ -125,4 +125,36 @@ public class ReservationController {
 
         return total;
     }
+
+    // 🚀 ================= CHECK AVAILABILITY =================
+
+    @GetMapping("/availability")
+    public String checkAvailability(
+            @RequestParam Integer roomNumber,
+            @RequestParam LocalDate checkInDate,
+            @RequestParam LocalDate checkOutDate
+    ) {
+
+        // ✅ VALIDATION
+        if (roomNumber == null || checkInDate == null || checkOutDate == null) {
+            throw new RuntimeException("Missing required parameters");
+        }
+
+        if (!checkInDate.isBefore(checkOutDate)) {
+            throw new RuntimeException("Invalid date range");
+        }
+
+        // 🔥 CORE LOGIC
+        boolean isAvailable = reservationService.isRoomAvailable(
+                roomNumber,
+                checkInDate,
+                checkOutDate
+        );
+
+        if (isAvailable) {
+            return "AVAILABLE";
+        } else {
+            throw new RuntimeException("Room not available for selected dates");
+        }
+    }
 }

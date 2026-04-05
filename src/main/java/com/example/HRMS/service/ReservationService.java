@@ -28,4 +28,6 @@ public interface ReservationService {
             LocalDate startDate,
             Pageable pageable
     );
+
+    boolean isRoomAvailable(Integer roomNumber, LocalDate checkIn, LocalDate checkOut);
 }

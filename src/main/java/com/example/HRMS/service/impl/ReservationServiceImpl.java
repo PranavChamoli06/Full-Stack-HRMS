@@ -3,6 +3,7 @@ package com.example.HRMS.service.impl;
 import com.example.HRMS.dto.ReservationRequest;
 import com.example.HRMS.dto.ReservationResponse;
 import com.example.HRMS.entity.*;
+import com.example.HRMS.exception.BookingConflictException;
 import com.example.HRMS.repository.*;
 import com.example.HRMS.service.ReservationService;
 import com.example.HRMS.service.PricingService; // ✅ NEW
@@ -73,7 +74,7 @@ public class ReservationServiceImpl implements ReservationService {
                         );
 
         if (!overlappingReservations.isEmpty()) {
-            throw new RuntimeException("Room already booked for selected dates");
+            throw new BookingConflictException("Room already booked for selected dates");
         }
 
         // ✅ CREATE RESERVATION
@@ -281,5 +282,15 @@ public class ReservationServiceImpl implements ReservationService {
         Reservation saved = reservationRepository.save(reservation);
 
         return mapToResponse(saved);
+    }
+
+    @Override
+    public boolean isRoomAvailable(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
+
+        return !reservationRepository.existsOverlappingReservation(
+                roomNumber,
+                checkIn,
+                checkOut
+        );
     }
 }

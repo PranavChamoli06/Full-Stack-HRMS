@@ -8,7 +8,8 @@ import {
   createReservation,
   updateReservation,
   cancelReservation,
-  previewPrice
+  previewPrice,
+  checkAvailability   // 🔥 NEW
 } from "../services/reservationService";
 
 function ReservationsPage() {
@@ -75,18 +76,15 @@ function ReservationsPage() {
     const current = normalize(date);
 
     return allReservations.filter((r) => {
+
+      if (!roomNumber) return false;
+      if (Number(r.roomNumber) !== Number(roomNumber)) return false;
+
       const start = normalize(parseDate(getCheckIn(r)));
       const end = normalize(parseDate(getCheckOut(r)));
 
       return current >= start && current < end;
     });
-  };
-
-  const getHeatClass = (count) => {
-    if (count === 0) return null;
-    if (count <= 2) return "heat-low";
-    if (count <= 5) return "heat-medium";
-    return "heat-high";
   };
 
   // ================= ACTIONS =================
@@ -138,6 +136,34 @@ function ReservationsPage() {
     }
   };
 
+  // 🔥 NEW — AVAILABILITY CHECK
+  const handleCheckAvailability = async () => {
+
+    if (!roomNumber || !checkInDate || !checkOutDate) {
+      Swal.fire("Error", "Fill all fields first", "warning");
+      return;
+    }
+
+    try {
+      await checkAvailability({
+        roomNumber: Number(roomNumber),
+        checkInDate,
+        checkOutDate
+      });
+
+      Swal.fire("Available", "Room is available", "success");
+
+    } catch (error) {
+
+      if (error.response?.status === 500) {
+        Swal.fire("Not Available", "Room already booked", "error");
+      } else {
+        Swal.fire("Error", "Something went wrong", "error");
+      }
+
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -157,22 +183,36 @@ function ReservationsPage() {
       guestPhone
     };
 
-    if (editingId) {
-      await updateReservation(editingId, payload);
-    } else {
-      await createReservation(payload);
+    try {
+
+      if (editingId) {
+        await updateReservation(editingId, payload);
+      } else {
+        await createReservation(payload);
+      }
+
+      Swal.fire("Success", "Reservation saved successfully", "success");
+
+      setEditingId(null);
+      setRoomNumber("");
+      setCheckInDate("");
+      setCheckOutDate("");
+      setGuestName("");
+      setGuestEmail("");
+      setGuestPhone("");
+
+      fetchReservations();
+      fetchAllReservations();
+
+    } catch (error) {
+
+      if (error.response?.status === 409) {
+        Swal.fire("Booking Conflict", error.response.data, "warning");
+      } else {
+        Swal.fire("Error", "Something went wrong", "error");
+      }
+
     }
-
-    setEditingId(null);
-    setRoomNumber("");
-    setCheckInDate("");
-    setCheckOutDate("");
-    setGuestName("");
-    setGuestEmail("");
-    setGuestPhone("");
-
-    fetchReservations();
-    fetchAllReservations();
   };
 
   // ================= UI =================
@@ -192,15 +232,17 @@ function ReservationsPage() {
             setSelectedBookings(getBookingsForDate(date));
           }}
 
+          tileDisabled={({ date, view }) => {
+            if (view !== "month") return false;
+            return getBookingsForDate(date).length > 0;
+          }}
+
           tileClassName={({ date, view }) => {
             if (view !== "month") return null;
 
-            const count = getBookingsForDate(date).length;
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
-
-            if (isSelected) return "selected-date";
-            return getHeatClass(count);
+            return date.toDateString() === selectedDate.toDateString()
+              ? "selected-date"
+              : null;
           }}
 
           tileContent={({ date, view }) => {
@@ -208,47 +250,11 @@ function ReservationsPage() {
 
             const count = getBookingsForDate(date).length;
 
-            return count ? (
+            return count > 0 ? (
               <div style={{ fontSize: "10px" }}>{count}</div>
             ) : null;
           }}
         />
-
-      </div>
-
-      {/* SELECTED BOOKINGS */}
-      <div className="card p-3 mb-4">
-
-        <h5>Bookings on {selectedDate.toDateString()}</h5>
-
-        {selectedBookings.length === 0 ? (
-          <p>No bookings</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Room</th>
-                <th>Guest</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {selectedBookings.map(b => (
-                <tr key={b.id}>
-                  <td>{b.id}</td>
-                  <td>{b.roomNumber}</td>
-                  <td>{b.guestName}</td>
-                  <td>
-                    <button className="btn btn-success me-2" onClick={() => handleEdit(b)}>Edit</button>
-                    <button className="btn btn-danger" onClick={() => handleCancel(b.id)}>Cancel</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
 
       </div>
 
@@ -266,13 +272,19 @@ function ReservationsPage() {
           <input placeholder="Guest Phone" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} className="form-control mb-2" />
 
           <button type="button" className="btn btn-info me-2" onClick={handlePreview}>Preview</button>
+
+          {/* 🔥 NEW BUTTON */}
+          <button type="button" className="btn btn-warning me-2" onClick={handleCheckAvailability}>
+            Check Availability
+          </button>
+
           <button className="btn btn-primary">Save</button>
 
         </form>
 
       </div>
 
-      {/* MAIN TABLE */}
+      {/* TABLE */}
       <div className="card p-3">
 
         <h5>Total: {totalElements}</h5>

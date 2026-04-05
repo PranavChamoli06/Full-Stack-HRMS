@@ -76,4 +76,18 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     GROUP BY FUNCTION('MONTHNAME', r.checkInDate)
     """)
     List<Object[]> getMonthlyRevenue();
+
+    //
+    @Query("""
+    SELECT COUNT(r) > 0 FROM Reservation r
+    WHERE r.room.roomNumber = :roomNumber
+    AND r.status <> 'CANCELLED'
+    AND r.checkInDate < :checkOutDate
+    AND r.checkOutDate > :checkInDate
+    """)
+    boolean existsOverlappingReservation(
+            Integer roomNumber,
+            LocalDate checkInDate,
+            LocalDate checkOutDate
+    );
 }
