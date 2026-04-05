@@ -7,7 +7,7 @@ A **production-ready full-stack Hotel Reservation Management System (HRMS)** bui
 * **Database:** MySQL
 * **Security:** JWT Authentication
 
-This project demonstrates **enterprise-level architecture**, combining secure backend APIs with a modern, responsive frontend dashboard.
+This system goes beyond basic CRUD and implements **real-world hotel booking logic**, including dynamic pricing, lifecycle automation, and admin-controlled pricing rules.
 
 ---
 
@@ -18,101 +18,26 @@ HRMS is a complete system for managing:
 * Hotel reservations
 * Users and roles
 * Admin operations
-* Analytics dashboards
-
-The system is designed with:
-
-* Scalable architecture
-* Secure authentication system
-* Role-based access control
-* Clean layered backend design
-* Interactive analytics dashboard
+* Pricing strategies
+* Booking lifecycle automation
 
 ---
 
 # 🏗 Full-Stack Architecture
 
-```id="arch1"
-React Frontend (UI + Routing + Charts)
-        │
-        │ Axios (REST API Calls)
-        ▼
-Spring Boot Backend (Business Logic + Security)
-        │
-        ▼
+```
+
+React Frontend
+│
+▼
+Axios (API Layer)
+│
+▼
+Spring Boot Backend
+│
+▼
 MySQL Database
-```
 
----
-
-# 📂 Project Structure
-
-## 🔙 Backend (Spring Boot)
-
-```id="backend-structure-final"
-src/main/java/com/example/HRMS
-│
-├── config          # Security, JWT, CORS, Swagger configuration
-├── controller      # REST API controllers
-├── dto             # Request & response models
-├── entity          # Database entities
-├── exception       # Global exception handling
-├── repository      # JPA repositories
-├── service         # Business logic
-│   ├── impl
-│   └── ai
-└── HRMSApplication
-```
-
-Resources:
-
-```id="backend-resources-final"
-src/main/resources
-│
-├── application.properties
-├── db/migration
-└── static
-```
-
----
-
-## 🎨 Frontend (React)
-
-```id="frontend-structure-final"
-hrms-frontend/src
-│
-├── api
-├── components
-├── layouts
-├── pages
-│   ├── LoginPage
-│   ├── DashboardPage
-│   ├── ReservationsPage
-│   └── AdminPage
-├── services
-├── utils
-├── App.js
-└── index.js
-```
-
----
-
-## 🔗 Architecture Flow
-
-```id="flow-final"
-UI (React Pages)
-   ↓
-Service Layer
-   ↓
-Axios Client (JWT Interceptor)
-   ↓
-Spring Boot Controllers
-   ↓
-Service Layer
-   ↓
-Repository Layer
-   ↓
-MySQL Database
 ```
 
 ---
@@ -120,10 +45,8 @@ MySQL Database
 # 🔐 Authentication & Security
 
 * JWT-based authentication
-* Secure login system
-* Protected routes (frontend)
 * Role-Based Access Control (ADMIN / MANAGER / STAFF)
-* Session handling with auto logout
+* Protected frontend routes
 * BCrypt password encryption
 * Method-level security
 
@@ -131,132 +54,154 @@ MySQL Database
 
 # 🛎 Reservation Management
 
-Full CRUD operations:
-
 * Create reservation
-* View reservations
 * Update reservation
-* Delete reservation
+* Cancel reservation
 * Pagination support
 
 ### Business Rules
 
-* Check-in date must be before check-out date
-* Prevent overlapping room bookings
-* Reservation status transitions enforced
+* Check-in < Check-out
+* Prevent overlapping bookings (double booking protection)
+* Reservation tied to authenticated user
 
 ---
 
-# 👥 Admin Panel
+# 🔄 Booking Lifecycle (Enterprise Feature)
+
+Reservation states:
+
+```
+
+PENDING → CONFIRMED → COMPLETED
+↘ CANCELLED
+
+```
+
+### Automation
+
+* Reservations automatically move to **COMPLETED** after checkout date
+* Implemented using scheduled backend jobs
+
+---
+
+# 💰 Dynamic Pricing Engine
+
+Pricing is calculated **per day**, not static.
+
+### Pricing Rules
+
+| Condition        | Pricing Logic        |
+|----------------|--------------------|
+| Weekday        | Base price          |
+| Weekend        | +20% surge          |
+| Festival       | Custom multiplier   |
+
+### Key Points
+
+* Festival pricing overrides weekend pricing
+* Null-safe fallback (no crashes if pricing missing)
+* Fully extendable for demand-based pricing
+
+---
+
+# ⚙️ Admin Panel
 
 Admin capabilities:
 
-* View all users
-* Create new users
-* Update user roles
-* Role-based UI restriction
+* User management
+* Role updates
+* Pricing management (CRUD)
+* Secure endpoints (ADMIN only)
+
+---
+
+# 💸 Pricing Management (Admin Feature)
+
+Admin can:
+
+* Add special pricing
+* Update multiplier
+* Delete pricing rules
+
+No code changes required → fully dynamic system
 
 ---
 
 # 📊 Dashboard & Analytics
 
-* KPI cards (Total reservations, Active bookings)
-* Reservation trends (monthly)
+* KPI cards
+* Reservation trends
 * Revenue analytics
-* Occupancy analytics
-
-Built using:
-
-* Recharts
+* Occupancy tracking
 
 ---
 
 # ⚙ Backend Features
 
 * REST API architecture
-* JWT authentication & authorization
+* JWT security
 * Global exception handling
-* Analytics endpoints
-* Flyway database migrations
-* Swagger API documentation
-* Spring Boot Actuator monitoring
+* Flyway migrations
+* Swagger documentation
+* Scheduled tasks (automation)
 
 ---
 
 # 🗄 Database
 
-* MySQL
-* Flyway migrations
-* Relational schema (Users, Reservations, Rooms)
-
----
-
-# 🐳 DevOps & Tools
-
-* Docker & Docker Compose
-* Swagger / OpenAPI
-* Spring Boot Actuator
+* MySQL relational schema
+* Tables:
+  - Users
+  - Reservations
+  - Rooms
+  - SpecialPricing
 
 ---
 
 # 📅 API Highlights
 
 ### Authentication
-
-```id="api-auth"
-POST /api/v1/auth/login
-POST /api/v1/auth/refresh
 ```
 
----
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+
+```
 
 ### Reservations
+```
 
-```id="api-res"
 GET /api/v1/reservations
 POST /api/v1/reservations
 PUT /api/v1/reservations/{id}
 DELETE /api/v1/reservations/{id}
+
 ```
 
----
-
-### Users (Admin)
-
-```id="api-user"
-GET /api/v1/users
-POST /api/v1/users
-PUT /api/v1/users/{id}/role
+### Pricing (Admin)
 ```
 
----
+GET /api/v1/admin/pricing
+POST /api/v1/admin/pricing
+PUT /api/v1/admin/pricing/{id}
+DELETE /api/v1/admin/pricing/{id}
 
-### Analytics
-
-```id="api-analytics"
-GET /api/v1/analytics/revenue
-GET /api/v1/analytics/occupancy
-GET /api/v1/analytics/monthly-revenue
-GET /api/v1/analytics/cancellation-rate
-```
+````
 
 ---
 
 # ▶ Running the Project
 
 ## Backend
-
-```bash id="run-backend"
+```bash
 cd HRMS-Backend
-mvn clean install
 mvn spring-boot:run
-```
-
----
+````
 
 ## Frontend
 
-```bash id="run-frontend"
+```bash
 cd hrms-frontend
 npm install
 npm start
@@ -268,19 +213,19 @@ npm start
 
 Frontend:
 
-```id="url-frontend"
+```
 http://localhost:3000
 ```
 
 Backend:
 
-```id="url-backend"
+```
 http://localhost:8080
 ```
 
 Swagger:
 
-```id="url-swagger"
+```
 http://localhost:8080/swagger-ui/index.html
 ```
 
@@ -288,46 +233,9 @@ http://localhost:8080/swagger-ui/index.html
 
 # 📊 Monitoring
 
-Health check:
-
-```id="monitor-health"
+```
 http://localhost:8080/actuator/health
 ```
-
----
-
-# 🧠 AI Integration (Future Scope)
-
-* Demand prediction
-* Dynamic pricing
-* Recommendation engine
-* Predictive analytics
-
----
-
-# 📈 Future Enhancements
-
-* AI-based booking prediction
-* Payment integration
-* Email notifications
-* Cloud deployment (AWS / Docker / Kubernetes)
-* Microservices architecture
-
----
-
-# 🗄 Database Design
-
-## ER Diagram
-
-![ER Diagram](assets/screenshots/er-diagram.png)
-
----
-
-## Key Relationships
-
-- One user can have multiple reservations  
-- One room can have multiple reservations  
-- Each reservation belongs to one user and one room
 
 ---
 
@@ -390,13 +298,26 @@ http://localhost:8080/actuator/health
 ✔ Full-stack application
 ✔ Secure authentication system
 ✔ Role-based access control
-✔ Reservation management (CRUD + Pagination)
-✔ Analytics dashboard
-✔ Admin management system
+✔ Dynamic pricing engine
+✔ Booking lifecycle automation
+✔ Double booking prevention
+✔ Admin pricing control
 ✔ Production-ready UI
+
+---
+
+# 🔮 Future Enhancements
+
+* AI-based pricing prediction
+* Payment integration
+* Email notifications
+* Cloud deployment (AWS / Docker / Kubernetes)
+* Calendar-based pricing UI
 
 ---
 
 # 👨‍💻 Author
 
-Developed by **Pranav Chamoli**
+Pranav Chamoli
+
+```
