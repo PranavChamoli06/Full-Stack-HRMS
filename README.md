@@ -317,7 +317,5 @@ http://localhost:8080/actuator/health
 ---
 
 # 👨‍💻 Author
-
-Pranav Chamoli
-
+Developed by **Pranav Chamoli** and **Dhruv Maithani**
 ```
