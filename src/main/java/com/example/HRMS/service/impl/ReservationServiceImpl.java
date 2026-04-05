@@ -6,7 +6,8 @@ import com.example.HRMS.entity.*;
 import com.example.HRMS.exception.BookingConflictException;
 import com.example.HRMS.repository.*;
 import com.example.HRMS.service.ReservationService;
-import com.example.HRMS.service.PricingService; // ✅ NEW
+import com.example.HRMS.service.PricingService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
@@ -16,7 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -292,5 +295,29 @@ public class ReservationServiceImpl implements ReservationService {
                 checkIn,
                 checkOut
         );
+    }
+
+    @Transactional
+    public void completePastReservations() {
+
+        List<Reservation> reservations = reservationRepository.findReservationsToComplete();
+
+        for (Reservation reservation : reservations) {
+            reservation.setStatus(ReservationStatus.COMPLETED);
+        }
+
+        reservationRepository.saveAll(reservations);
+    }
+
+    public Map<String, Long> getReservationStats() {
+
+        Map<String, Long> stats = new HashMap<>();
+
+        stats.put("PENDING", reservationRepository.countByStatus(ReservationStatus.PENDING));
+        stats.put("CONFIRMED", reservationRepository.countByStatus(ReservationStatus.CONFIRMED));
+        stats.put("COMPLETED", reservationRepository.countByStatus(ReservationStatus.COMPLETED));
+        stats.put("CANCELLED", reservationRepository.countByStatus(ReservationStatus.CANCELLED));
+
+        return stats;
     }
 }

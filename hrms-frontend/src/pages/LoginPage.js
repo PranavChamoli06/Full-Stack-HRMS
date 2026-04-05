@@ -8,10 +8,17 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  // 🔥 Auto redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
     if (token) {
-      navigate("/dashboard");
+      if (role === "ADMIN" || role === "MANAGER") {
+        navigate("/dashboard");
+      } else {
+        navigate("/reservations");
+      }
     }
   }, [navigate]);
 
@@ -26,8 +33,12 @@ function LoginPage() {
       localStorage.setItem("token", data.accessToken);
       localStorage.setItem("role", data.role);
 
-      alert("Login successful");
-      navigate("/dashboard");
+      // 🔥 ROLE-BASED REDIRECT
+      if (data.role === "ADMIN" || data.role === "MANAGER") {
+        navigate("/dashboard");
+      } else {
+        navigate("/reservations");
+      }
 
     } catch (error) {
       console.error("Login failed", error);
@@ -36,44 +47,44 @@ function LoginPage() {
   };
 
   return (
-  <div className="d-flex justify-content-center align-items-center vh-100">
+    <div className="d-flex justify-content-center align-items-center vh-100">
 
-    <div className="card p-4 shadow" style={{ width: "350px" }}>
+      <div className="card p-4 shadow" style={{ width: "350px" }}>
 
-      <h3 className="text-center mb-3">HRMS Login</h3>
+        <h3 className="text-center mb-3">HRMS Login</h3>
 
-      <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin}>
 
-        <div className="mb-3">
-          <label className="form-label">Username</label>
-          <input
-            className="form-control"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
+          <div className="mb-3">
+            <label className="form-label">Username</label>
+            <input
+              className="form-control"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
 
-        <div className="mb-3">
-          <label className="form-label">Password</label>
-          <input
-            className="form-control"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <div className="mb-3">
+            <label className="form-label">Password</label>
+            <input
+              className="form-control"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        <button className="btn btn-primary w-100" type="submit">
-          Login
-        </button>
+          <button className="btn btn-primary w-100" type="submit">
+            Login
+          </button>
 
-      </form>
+        </form>
+
+      </div>
 
     </div>
-
-  </div>
-);
+  );
 }
 
 export default LoginPage;

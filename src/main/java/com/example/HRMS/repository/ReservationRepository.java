@@ -29,7 +29,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     // ================= ANALYTICS =================
 
-    // ✅ TOTAL REVENUE (WITH NIGHTS * PRICE)
+    // TOTAL REVENUE (WITH NIGHTS * PRICE)
     @Query("""
     SELECT SUM(
         p.pricePerNight * 
@@ -38,12 +38,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     FROM Reservation r
     JOIN r.room rm
     JOIN RoomPricing p ON p.roomType = rm.roomType
-    WHERE r.status = 'CONFIRMED'
+    WHERE r.status IN ('CONFIRMED', 'COMPLETED')
     """)
     BigDecimal calculateTotalRevenue();
 
 
-    // ✅ COUNT DISTINCT BOOKED ROOMS
+    // COUNT DISTINCT BOOKED ROOMS
     @Query("""
     SELECT COUNT(DISTINCT rm.roomNumber)
     FROM Reservation r
@@ -53,7 +53,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countBookedRooms();
 
 
-    // ✅ TOTAL DISTINCT ROOMS USED IN RESERVATIONS
+    // TOTAL DISTINCT ROOMS USED IN RESERVATIONS
     @Query("""
     SELECT COUNT(DISTINCT rm.roomNumber)
     FROM Reservation r
@@ -62,7 +62,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countDistinctRooms();
 
 
-    // ✅ MONTHLY REVENUE (CORRECT JOIN)
+    // MONTHLY REVENUE (CORRECT JOIN)
     @Query("""
     SELECT FUNCTION('MONTHNAME', r.checkInDate),
            SUM(
@@ -90,4 +90,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             LocalDate checkInDate,
             LocalDate checkOutDate
     );
+
+    // AUTO COMPLETE BOOKINGS
+    @Query("""
+    SELECT r FROM Reservation r
+    WHERE r.status = 'CONFIRMED'
+    AND r.checkOutDate < CURRENT_DATE
+    """)
+    List<Reservation> findReservationsToComplete();
 }

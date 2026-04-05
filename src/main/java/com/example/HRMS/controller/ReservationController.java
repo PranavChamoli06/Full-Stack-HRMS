@@ -11,11 +11,13 @@ import com.example.HRMS.repository.RoomRepository;
 import com.example.HRMS.repository.RoomPricingRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/reservations")
@@ -156,5 +158,10 @@ public class ReservationController {
         } else {
             throw new RuntimeException("Room not available for selected dates");
         }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getReservationStats() {
+        return ResponseEntity.ok(reservationService.getReservationStats());
     }
 }

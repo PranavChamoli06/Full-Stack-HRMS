@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 
@@ -8,27 +7,42 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReservationsPage from "./pages/ReservationsPage";
 import AdminPage from "./pages/AdminPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 function App() {
 
   const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
 
   return (
     <BrowserRouter>
 
       <Routes>
 
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* 🔥 SMART DEFAULT ROUTE */}
+        <Route
+          path="/"
+          element={
+            token ? (
+              role === "ADMIN" || role === "MANAGER" ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Navigate to="/reservations" replace />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
 
         {/* Login */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Dashboard */}
+        {/* Dashboard (ADMIN + MANAGER only) */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER"]}>
               <DashboardLayout>
                 <DashboardPage />
               </DashboardLayout>
@@ -36,11 +50,11 @@ function App() {
           }
         />
 
-        {/* Reservations */}
+        {/* Reservations (ALL roles) */}
         <Route
           path="/reservations"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "STAFF"]}>
               <DashboardLayout>
                 <ReservationsPage />
               </DashboardLayout>
@@ -48,21 +62,20 @@ function App() {
           }
         />
 
-        {/* Admin */}
+        {/* Admin (ADMIN only) */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
               <DashboardLayout>
-                {localStorage.getItem("role") === "ADMIN" ? (
-                  <AdminPage />
-                ) : (
-                  <div>Access Denied</div>
-                )}
+                <AdminPage />
               </DashboardLayout>
             </ProtectedRoute>
           }
         />
+
+        {/* Unauthorized */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       </Routes>
 

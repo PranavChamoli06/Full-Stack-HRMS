@@ -18,10 +18,12 @@ import {
 function DashboardPage() {
 
   const [reservations, setReservations] = useState([]);
+  const [stats, setStats] = useState({});
   const [dateFilter, setDateFilter] = useState("ALL");
 
   useEffect(() => {
     fetchReservations();
+    fetchStats();
   }, []);
 
   const fetchReservations = async () => {
@@ -34,7 +36,23 @@ function DashboardPage() {
     }
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:8080/api/v1/reservations/stats", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error("Error loading stats", error);
+      setStats({});
+    }
+  };
 
   /* FILTER */
   const filterReservations = () => {
@@ -57,14 +75,6 @@ function DashboardPage() {
 
   /* KPIs */
   const totalReservations = filteredReservations.length;
-
-  const activeReservations = filteredReservations.filter(
-    (r) => r.checkOutDate >= today
-  ).length;
-
-  const upcomingCheckIns = filteredReservations.filter(
-    (r) => r.checkInDate >= today
-  ).length;
 
   /* CHART DATA */
   const reservationsPerMonth = {};
@@ -153,16 +163,6 @@ function DashboardPage() {
         </div>
 
         <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Active</h6>
-          <h3>{activeReservations}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Upcoming</h6>
-          <h3>{upcomingCheckIns}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
           <h6>Revenue</h6>
           <h3>₹{totalRevenue.toLocaleString()}</h3>
         </div>
@@ -172,6 +172,27 @@ function DashboardPage() {
           <h3 className={revenueGrowth >= 0 ? "text-success" : "text-danger"}>
             {revenueGrowth >= 0 ? "↑" : "↓"} {Math.abs(revenueGrowth)}%
           </h3>
+        </div>
+
+        {/* STATUS CARDS */}
+        <div className="card text-center p-3" style={{ width: "200px" }}>
+          <h6>Pending</h6>
+          <h3>{stats.PENDING || 0}</h3>
+        </div>
+
+        <div className="card text-center p-3" style={{ width: "200px" }}>
+          <h6>Confirmed</h6>
+          <h3>{stats.CONFIRMED || 0}</h3>
+        </div>
+
+        <div className="card text-center p-3" style={{ width: "200px" }}>
+          <h6>Completed</h6>
+          <h3>{stats.COMPLETED || 0}</h3>
+        </div>
+
+        <div className="card text-center p-3" style={{ width: "200px" }}>
+          <h6>Cancelled</h6>
+          <h3>{stats.CANCELLED || 0}</h3>
         </div>
 
       </div>

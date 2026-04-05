@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface ReservationService {
 
@@ -30,4 +31,5 @@ public interface ReservationService {
     );
 
     boolean isRoomAvailable(Integer roomNumber, LocalDate checkIn, LocalDate checkOut);
+    Map<String, Long> getReservationStats();
 }
