@@ -346,10 +346,12 @@ GET /api/v1/analytics/cancellation-rate
 
 ### Pricing (Admin)
 
+```id="api-pricing"
 GET /api/v1/admin/pricing  
 POST /api/v1/admin/pricing  
 PUT /api/v1/admin/pricing/{id}  
 DELETE /api/v1/admin/pricing/{id}
+```
 
 ---
 
