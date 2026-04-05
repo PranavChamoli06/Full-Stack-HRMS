@@ -147,6 +147,27 @@ Full CRUD operations:
 
 ---
 
+# 🔄 Booking Lifecycle (Enterprise Feature)
+
+Reservation states:
+
+PENDING → CONFIRMED → COMPLETED  
+        ↘ CANCELLED  
+
+### Automation
+
+- Reservations automatically move to **COMPLETED** after checkout date
+- Implemented using scheduled backend jobs
+- No manual intervention required
+
+### Business Impact
+
+- Accurate reservation tracking
+- Real-world hotel workflow simulation
+- Enables correct revenue calculation
+
+---
+
 # 👥 Admin Panel
 
 Admin capabilities:
@@ -155,6 +176,21 @@ Admin capabilities:
 * Create new users
 * Update user roles
 * Role-based UI restriction
+
+---
+
+## ⚙️ Pricing Management (Admin Feature)
+
+Admin can:
+
+- Add special pricing (festival / peak days)
+- Update pricing multiplier
+- Delete pricing rules
+
+### Key Advantage
+
+- No code changes required
+- Fully dynamic pricing system
 
 ---
 
@@ -171,6 +207,22 @@ Built using:
 
 ---
 
+## 💸 Price Preview (User Feature)
+
+Before booking, users can:
+
+- Preview total price
+- See pricing impact based on selected dates
+- Understand difference between base and final price
+
+### Benefits
+
+- Transparent pricing
+- Better user experience
+- Reduces booking confusion
+
+---
+
 # ⚙ Backend Features
 
 * REST API architecture
@@ -183,11 +235,53 @@ Built using:
 
 ---
 
+## 💰 Dynamic Pricing Engine
+
+Pricing is calculated **per day**, not static.
+
+### Pricing Rules
+
+- Weekdays → Base price
+- Weekends → +20% surge
+- Special/Festival pricing → Custom multiplier
+- Festival pricing overrides weekend pricing
+
+### Architecture
+
+ReservationService → PricingService → SpecialPricingRepository
+
+### Key Highlights
+
+- Null-safe pricing (no crashes if data missing)
+- Extendable for demand-based pricing
+- Admin-controlled pricing via UI
+
+---
+
 # 🗄 Database
 
 * MySQL
 * Flyway migrations
 * Relational schema (Users, Reservations, Rooms)
+
+---
+
+## 📈 Revenue Calculation Logic
+
+Revenue includes only:
+
+- CONFIRMED reservations
+- COMPLETED reservations
+
+Excluded:
+
+- PENDING
+- CANCELLED
+
+### Why This Matters
+
+- Ensures financial accuracy
+- Matches real-world hotel revenue tracking
 
 ---
 
@@ -198,6 +292,16 @@ Built using:
 * Spring Boot Actuator
 
 ---
+
+## 🔁 Booking Flow
+
+1. User creates reservation → PENDING
+2. (Future: payment integration) → CONFIRMED
+3. After checkout → automatically COMPLETED
+4. User/Admin can cancel → CANCELLED
+
+---
+
 
 # 📅 API Highlights
 
@@ -239,6 +343,13 @@ GET /api/v1/analytics/occupancy
 GET /api/v1/analytics/monthly-revenue
 GET /api/v1/analytics/cancellation-rate
 ```
+
+### Pricing (Admin)
+
+GET /api/v1/admin/pricing  
+POST /api/v1/admin/pricing  
+PUT /api/v1/admin/pricing/{id}  
+DELETE /api/v1/admin/pricing/{id}
 
 ---
 
@@ -394,6 +505,11 @@ http://localhost:8080/actuator/health
 ✔ Analytics dashboard
 ✔ Admin management system
 ✔ Production-ready UI
+✔ Booking lifecycle automation  
+✔ Dynamic pricing engine  
+✔ Admin-controlled pricing rules  
+✔ Price preview before booking  
+✔ Revenue-safe calculation
 
 ---
 
