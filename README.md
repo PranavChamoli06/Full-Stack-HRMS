@@ -498,21 +498,20 @@ http://localhost:8080/actuator/health
 
 ---
 
-# 🎯 System Capabilities
+## 🎯 System Capabilities
 
-✔ Full-stack application
-✔ Secure authentication system
-✔ Role-based access control
-✔ Reservation management (CRUD + Pagination)
-✔ Analytics dashboard
-✔ Admin management system
-✔ Production-ready UI
-✔ Booking lifecycle automation  
-✔ Dynamic pricing engine  
-✔ Admin-controlled pricing rules  
-✔ Price preview before booking  
-✔ Revenue-safe calculation
-
+- Full-stack application  
+- Secure authentication system  
+- Role-based access control  
+- Reservation management (CRUD + Pagination)  
+- Analytics dashboard  
+- Admin management system  
+- Production-ready UI  
+- Booking lifecycle automation  
+- Dynamic pricing engine  
+- Admin-controlled pricing rules  
+- Price preview before booking  
+- Revenue-safe calculation
 ---
 
 # 👨‍💻 Author
