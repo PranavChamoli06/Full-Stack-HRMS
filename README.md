@@ -523,6 +523,7 @@ DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password  
 
 ### Windows:
+
 setx DB_USERNAME "root"
 setx DB_PASSWORD "yourpassword"
 ---
