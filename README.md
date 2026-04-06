@@ -526,6 +526,11 @@ DB_PASSWORD=your_db_password
 
 setx DB_USERNAME "root"
 setx DB_PASSWORD "yourpassword"
+
+### Mac/Linux:
+
+export DB_USERNAME=root
+export DB_PASSWORD=yourpassword
 ---
 
 # 👨‍💻 Author
