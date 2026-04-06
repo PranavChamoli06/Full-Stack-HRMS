@@ -28,7 +28,7 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(admin);
 
-            System.out.println("ADMIN USER CREATED");
+            System.out.println("ADMIN CREATED");
         }
 
         // Create USER
@@ -43,5 +43,19 @@ public class DataInitializer implements CommandLineRunner {
 
             System.out.println("USER CREATED");
         }
+
+        // Create MANAGER
+        if (userRepository.findByUsername("manager").isEmpty()) {
+
+            User admin = new User();
+            admin.setUsername("manager");
+            admin.setPassword(passwordEncoder.encode("manager123"));
+            admin.setRole(Role.MANAGER);
+
+            userRepository.save(admin);
+
+            System.out.println("MANAGER CREATED");
+        }
+
     }
 }
