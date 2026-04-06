@@ -522,15 +522,21 @@ Before running the project, set:
 DB_USERNAME=your_db_username  
 DB_PASSWORD=your_db_password  
 
+---
+
 ### Windows:
 
+```bash
 setx DB_USERNAME "root"
 setx DB_PASSWORD "yourpassword"
+```
 
 ### Mac/Linux:
 
+```bash
 export DB_USERNAME=root
 export DB_PASSWORD=yourpassword
+```
 ---
 
 # 👨‍💻 Author
