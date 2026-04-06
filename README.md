@@ -512,6 +512,19 @@ http://localhost:8080/actuator/health
 - Admin-controlled pricing rules  
 - Price preview before booking  
 - Revenue-safe calculation
+
+---
+
+## 🔐 Environment Variables
+
+Before running the project, set:
+
+DB_USERNAME=your_db_username  
+DB_PASSWORD=your_db_password  
+
+### Windows:
+setx DB_USERNAME "root"
+setx DB_PASSWORD "yourpassword"
 ---
 
 # 👨‍💻 Author
