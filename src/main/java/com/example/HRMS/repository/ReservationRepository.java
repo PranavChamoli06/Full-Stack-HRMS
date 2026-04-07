@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
@@ -26,6 +27,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     long countByStatus(ReservationStatus status);
+    Optional<Reservation> findByBookingReference(String bookingReference);
 
     // ================= ANALYTICS =================
 

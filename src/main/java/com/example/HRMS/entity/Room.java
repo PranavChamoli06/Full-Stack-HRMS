@@ -16,12 +16,11 @@ public class Room {
     @Enumerated(EnumType.STRING)
     private RoomType roomType;
 
+    private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public enum RoomType {
         Standard, Deluxe, Suite
     }
-
-    // getters & setters
 }

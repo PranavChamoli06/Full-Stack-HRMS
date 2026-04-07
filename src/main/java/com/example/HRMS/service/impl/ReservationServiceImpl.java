@@ -1,10 +1,14 @@
 package com.example.HRMS.service.impl;
 
+import com.example.HRMS.dto.BookingResponse;
+import com.example.HRMS.dto.PublicBookingRequest;
 import com.example.HRMS.dto.ReservationRequest;
 import com.example.HRMS.dto.ReservationResponse;
 import com.example.HRMS.entity.*;
 import com.example.HRMS.exception.BookingConflictException;
 import com.example.HRMS.repository.*;
+import com.example.HRMS.service.EmailService;
+import com.example.HRMS.service.PdfService;
 import com.example.HRMS.service.ReservationService;
 import com.example.HRMS.service.PricingService;
 import jakarta.transaction.Transactional;
@@ -20,6 +24,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +38,9 @@ public class ReservationServiceImpl implements ReservationService {
     private final RoomRepository roomRepository;
     private final RoomPricingRepository roomPricingRepository;
     private final PricingService pricingService;
+    private final CustomerRepository customerRepository;
+    private final EmailService emailService;
+    private final PdfService pdfService;
 
     private static final Logger logger =
             LoggerFactory.getLogger(ReservationServiceImpl.class);
@@ -309,5 +317,117 @@ public class ReservationServiceImpl implements ReservationService {
         stats.put("CANCELLED", reservationRepository.countByStatus(ReservationStatus.CANCELLED));
 
         return stats;
+    }
+
+    @Transactional
+    public BookingResponse createPublicBooking(PublicBookingRequest request) {
+
+        // ✅ VALIDATION
+        if (request.getRoomNumber() == null) {
+            throw new RuntimeException("Room number is required");
+        }
+
+        if (request.getCheckIn() == null || request.getCheckOut() == null) {
+            throw new RuntimeException("Dates are required");
+        }
+
+        if (request.getCheckIn().isAfter(request.getCheckOut())) {
+            throw new RuntimeException("Invalid date range");
+        }
+
+        // ✅ FETCH ROOM
+        Room room = roomRepository.findById(request.getRoomNumber())
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        // ✅ CHECK AVAILABILITY (CRITICAL)
+        boolean available = !reservationRepository.existsOverlappingReservation(
+                request.getRoomNumber(),
+                request.getCheckIn(),
+                request.getCheckOut()
+        );
+
+        if (!available) {
+            throw new RuntimeException("Room not available for selected dates");
+        }
+
+        // ✅ CREATE CUSTOMER
+        Customer customer = new Customer();
+        customer.setFullName(request.getFullName());
+        customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
+
+        customerRepository.save(customer);
+
+        // ✅ CREATE RESERVATION
+        Reservation reservation = new Reservation();
+        reservation.setRoom(room);
+        reservation.setCustomer(customer); // ⚠️ make sure this field exists in entity
+
+        reservation.setCheckInDate(request.getCheckIn());
+        reservation.setCheckOutDate(request.getCheckOut());
+
+        reservation.setFullName(request.getFullName());
+        reservation.setEmail(request.getEmail());
+        reservation.setPhone(request.getPhone());
+
+        String reference = "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        reservation.setBookingReference(reference);
+
+        reservation.setStatus(ReservationStatus.CONFIRMED);
+
+        Reservation saved = reservationRepository.save(reservation);
+
+        byte[] pdf = pdfService.generateBookingPdf(saved);
+        try {
+            emailService.sendBookingConfirmationWithPdf(
+                    request.getEmail(),
+                    request.getFullName(),
+                    reference,
+                    request.getCheckIn().toString(),
+                    request.getCheckOut().toString(),
+                    pdf
+            );
+        } catch (Exception e) {
+            System.out.println("Email failed: " + e.getMessage());
+        }
+
+        // ✅ RESPONSE
+        BookingResponse response = new BookingResponse();
+        response.setBookingId(saved.getId());
+        response.setStatus(saved.getStatus().name());
+        response.setBookingReference(reference);
+
+        return response;
+    }
+
+    @Override
+    public List<Room> getAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
+        return roomRepository.findAvailableRooms(checkIn, checkOut);
+    }
+
+    @Override
+    public void cancelBooking(String reference) {
+
+        Reservation reservation = reservationRepository
+                .findByBookingReference(reference)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+            throw new RuntimeException("Booking already cancelled");
+        }
+
+        reservation.setStatus(ReservationStatus.CANCELLED);
+
+        reservationRepository.save(reservation);
+    }
+
+    @Override
+    public ReservationResponse getBookingByReference(String reference) {
+
+        Reservation reservation = reservationRepository
+                .findByBookingReference(reference)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        return mapToResponse(reservation);
     }
 }

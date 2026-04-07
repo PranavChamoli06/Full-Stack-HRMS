@@ -37,4 +37,11 @@ public class Reservation extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "room_number")
     private Room room;
+
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    @Column(name = "booking_reference", unique = true)
+    private String bookingReference;
 }
