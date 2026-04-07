@@ -21,9 +21,9 @@ public class Reservation extends BaseEntity {
 
     private LocalDate checkOutDate;
 
-    private String guestEmail;
-    private String guestPhone;
-    private String guestName;
+    private String email;
+    private String phone;
+    private String fullName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

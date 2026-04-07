@@ -32,14 +32,14 @@ public class ReservationServiceImpl implements ReservationService {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final RoomPricingRepository roomPricingRepository;
-    private final PricingService pricingService; // ✅ NEW
+    private final PricingService pricingService;
+
     private static final Logger logger =
             LoggerFactory.getLogger(ReservationServiceImpl.class);
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
 
-        // ✅ VALIDATION (NEW — IMPORTANT)
         if (request.getRoomNumber() == null) {
             throw new RuntimeException("Room number is required");
         }
@@ -52,7 +52,6 @@ public class ReservationServiceImpl implements ReservationService {
             throw new RuntimeException("Check-in date cannot be after check-out date");
         }
 
-        // ✅ USER
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
@@ -61,13 +60,9 @@ public class ReservationServiceImpl implements ReservationService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // ✅ ROOM (NOW SAFE)
-        Integer roomNumber = request.getRoomNumber();
-
-        Room room = roomRepository.findById(roomNumber)
+        Room room = roomRepository.findById(request.getRoomNumber())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
-        // ✅ OVERLAP CHECK
         List<Reservation> overlappingReservations =
                 reservationRepository
                         .findByRoomRoomNumberAndCheckOutDateAfterAndCheckInDateBefore(
@@ -80,7 +75,6 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BookingConflictException("Room already booked for selected dates");
         }
 
-        // ✅ CREATE RESERVATION
         Reservation reservation = new Reservation();
 
         reservation.setUser(user);
@@ -88,9 +82,10 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
 
-        reservation.setGuestName(request.getGuestName());
-        reservation.setGuestEmail(request.getGuestEmail());
-        reservation.setGuestPhone(request.getGuestPhone());
+        // ✅ FIXED FIELDS
+        reservation.setFullName(request.getFullName());
+        reservation.setEmail(request.getEmail());
+        reservation.setPhone(request.getPhone());
 
         reservation.setStatus(ReservationStatus.PENDING);
 
@@ -129,16 +124,16 @@ public class ReservationServiceImpl implements ReservationService {
             reservation.setCheckOutDate(request.getCheckOutDate());
         }
 
-        if (request.getGuestName() != null) {
-            reservation.setGuestName(request.getGuestName());
+        if (request.getFullName() != null) {
+            reservation.setFullName(request.getFullName());
         }
 
-        if (request.getGuestEmail() != null) {
-            reservation.setGuestEmail(request.getGuestEmail());
+        if (request.getEmail() != null) {
+            reservation.setEmail(request.getEmail());
         }
 
-        if (request.getGuestPhone() != null) {
-            reservation.setGuestPhone(request.getGuestPhone());
+        if (request.getPhone() != null) {
+            reservation.setPhone(request.getPhone());
         }
 
         if (reservation.getCheckInDate().isAfter(reservation.getCheckOutDate())) {
@@ -177,7 +172,7 @@ public class ReservationServiceImpl implements ReservationService {
         return reservations.map(this::mapToResponse);
     }
 
-    // ================= UPDATED PRICE CALCULATION =================
+    // ================= PRICE CALCULATION =================
 
     private BigDecimal calculateTotalPrice(Reservation reservation) {
 
@@ -211,14 +206,10 @@ public class ReservationServiceImpl implements ReservationService {
                 );
             } catch (Exception e) {
                 logger.error("Pricing error for date {}: {}", currentDate, e.getMessage());
-                calculated = basePrice.doubleValue(); // fallback
+                calculated = basePrice.doubleValue();
             }
 
-            logger.debug("Pricing -> Date: {} | Base: {} | Final: {}",
-                    currentDate, basePrice, calculated);
-
             totalPrice = totalPrice.add(BigDecimal.valueOf(calculated));
-
             currentDate = currentDate.plusDays(1);
         }
 
@@ -230,9 +221,9 @@ public class ReservationServiceImpl implements ReservationService {
     private ReservationResponse mapToResponse(Reservation reservation) {
 
         String roomNumber = null;
-        String guestName = null;
-        String guestEmail = null;
-        String guestPhone = null;
+        String fullName = null;
+        String email = null;
+        String phone = null;
         String createdBy = null;
 
         if (reservation.getRoom() != null) {
@@ -243,18 +234,18 @@ public class ReservationServiceImpl implements ReservationService {
             createdBy = reservation.getUser().getUsername();
         }
 
-        guestName = reservation.getGuestName();
-        guestEmail = reservation.getGuestEmail();
-        guestPhone = reservation.getGuestPhone();
+        fullName = reservation.getFullName();
+        email = reservation.getEmail();
+        phone = reservation.getPhone();
 
         BigDecimal totalPrice = calculateTotalPrice(reservation);
 
         return ReservationResponse.builder()
                 .id(reservation.getId())
                 .roomNumber(roomNumber)
-                .guestName(guestName)
-                .guestEmail(guestEmail)
-                .guestPhone(guestPhone)
+                .fullName(fullName)
+                .email(email)
+                .phone(phone)
                 .createdBy(createdBy)
                 .checkInDate(reservation.getCheckInDate())
                 .checkOutDate(reservation.getCheckOutDate())
@@ -289,7 +280,6 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public boolean isRoomAvailable(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
-
         return !reservationRepository.existsOverlappingReservation(
                 roomNumber,
                 checkIn,

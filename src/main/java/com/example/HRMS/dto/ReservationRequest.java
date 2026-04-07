@@ -15,7 +15,7 @@ public class ReservationRequest {
 
     private LocalDate checkOutDate;
 
-    private String guestEmail;
-    private String guestPhone;
-    private String guestName;
+    private String email;
+    private String phone;
+    private String fullName;
 }

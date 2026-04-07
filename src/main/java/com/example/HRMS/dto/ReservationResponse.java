@@ -20,9 +20,9 @@ public class ReservationResponse {
 
     private String status;
 
-    private String guestEmail;
-    private String guestPhone;
-    private String guestName;
+    private String email;
+    private String phone;
+    private String fullName;
     private BigDecimal totalPrice;
 
     private String createdBy; // who created booking (admin/staff)
