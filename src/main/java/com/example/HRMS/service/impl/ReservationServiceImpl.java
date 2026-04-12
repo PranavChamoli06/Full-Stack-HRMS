@@ -1,9 +1,6 @@
 package com.example.HRMS.service.impl;
 
-import com.example.HRMS.dto.BookingResponse;
-import com.example.HRMS.dto.PublicBookingRequest;
-import com.example.HRMS.dto.ReservationRequest;
-import com.example.HRMS.dto.ReservationResponse;
+import com.example.HRMS.dto.*;
 import com.example.HRMS.entity.*;
 import com.example.HRMS.exception.BookingConflictException;
 import com.example.HRMS.repository.*;
@@ -87,18 +84,21 @@ public class ReservationServiceImpl implements ReservationService {
 
         reservation.setUser(user);
         reservation.setRoom(room);
+
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
 
-        // ✅ FIXED FIELDS
         reservation.setFullName(request.getFullName());
         reservation.setEmail(request.getEmail());
         reservation.setPhone(request.getPhone());
 
-        reservation.setStatus(ReservationStatus.PENDING);
+        // ✅ ADD THIS
+        String reference = "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        reservation.setBookingReference(reference);
+
+        reservation.setStatus(ReservationStatus.PENDING); // optional
 
         Reservation saved = reservationRepository.save(reservation);
-
         return mapToResponse(saved);
     }
 
@@ -401,8 +401,43 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public List<Room> getAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
-        return roomRepository.findAvailableRooms(checkIn, checkOut);
+    public List<RoomResponse> getAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
+
+        List<Room> rooms = roomRepository.findAvailableRooms(checkIn, checkOut);
+
+        return rooms.stream().map(room -> {
+
+            // 🔹 Get base pricing
+            RoomPricing pricing = roomPricingRepository
+                    .findByRoomType(room.getRoomType())
+                    .orElseThrow(() -> new RuntimeException("Pricing not found"));
+
+            double basePrice = pricing.getPricePerNight().doubleValue();
+
+            double total = 0;
+            int days = 0;
+
+            LocalDate current = checkIn;
+
+            while (current.isBefore(checkOut)) {
+                total += pricingService.calculatePrice(basePrice, current);
+                current = current.plusDays(1);
+                days++;
+            }
+
+            double pricePerNight = days == 0 ? basePrice : total / days;
+
+            // ✅ ROUND TO INTEGER
+            int roundedPrice = (int) Math.round(pricePerNight);
+
+            // 🔹 Build DTO manually
+            return RoomResponse.builder()
+                    .roomNumber(room.getRoomNumber())
+                    .roomType(room.getRoomType().name())
+                    .price(roundedPrice)
+                    .build();
+
+        }).toList();
     }
 
     @Override
@@ -429,5 +464,38 @@ public class ReservationServiceImpl implements ReservationService {
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         return mapToResponse(reservation);
+    }
+
+    @Override
+    public PricePreviewResponse getPricePreview(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
+
+        Room room = roomRepository.findByRoomNumber(roomNumber)
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        RoomPricing pricing = roomPricingRepository
+                .findByRoomType(room.getRoomType())
+                .orElseThrow(() -> new RuntimeException("Pricing not found"));
+
+        double basePrice = pricing.getPricePerNight().doubleValue();
+
+        double total = 0;
+        int days = 0;
+
+        LocalDate current = checkIn;
+
+        while (current.isBefore(checkOut)) {
+            total += pricingService.calculatePrice(basePrice, current);
+            current = current.plusDays(1);
+            days++;
+        }
+
+        int totalPrice = (int) Math.round(total);
+        int pricePerNight = days == 0 ? (int) basePrice : (int) Math.round(total / days);
+
+        return PricePreviewResponse.builder()
+                .pricePerNight(pricePerNight)
+                .totalPrice(totalPrice)
+                .nights(days)
+                .build();
     }
 }

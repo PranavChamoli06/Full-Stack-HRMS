@@ -4,10 +4,12 @@ const api = axios.create({
   baseURL: "http://localhost:8080/api/v1",
 });
 
+// REQUEST INTERCEPTOR
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
-  if (token) {
+  // ✅ Only attach token for NON-public APIs
+  if (token && !config.url.includes("/public")) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -21,13 +23,16 @@ api.interceptors.response.use(
 
     if (error.response) {
 
-      if (error.response.status === 401) {
+      const isPublicApi = error.config.url.includes("/public");
+
+      // ✅ Only handle auth errors for PRIVATE APIs
+      if (error.response.status === 401 && !isPublicApi) {
         alert("Session expired. Please login again.");
         localStorage.removeItem("token");
         window.location.href = "/";
       }
 
-      if (error.response.status === 403) {
+      if (error.response.status === 403 && !isPublicApi) {
         alert("Access denied");
       }
 

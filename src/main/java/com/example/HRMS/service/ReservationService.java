@@ -1,9 +1,6 @@
 package com.example.HRMS.service;
 
-import com.example.HRMS.dto.BookingResponse;
-import com.example.HRMS.dto.PublicBookingRequest;
-import com.example.HRMS.dto.ReservationRequest;
-import com.example.HRMS.dto.ReservationResponse;
+import com.example.HRMS.dto.*;
 
 import com.example.HRMS.entity.ReservationStatus;
 import com.example.HRMS.entity.Room;
@@ -37,11 +34,13 @@ public interface ReservationService {
 
     Map<String, Long> getReservationStats();
 
-    List<Room> getAvailableRooms(LocalDate checkIn, LocalDate checkOut);
+    List<RoomResponse> getAvailableRooms(LocalDate checkIn, LocalDate checkOut);
 
     BookingResponse createPublicBooking(PublicBookingRequest request);
 
     void cancelBooking(String reference);
 
     ReservationResponse getBookingByReference(String reference);
+
+    PricePreviewResponse getPricePreview(Integer roomNumber, LocalDate checkIn, LocalDate checkOut);
 }

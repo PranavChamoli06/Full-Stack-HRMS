@@ -9,7 +9,7 @@ import {
   updateReservation,
   cancelReservation,
   previewPrice,
-  checkAvailability   // 🔥 NEW
+  checkAvailability
 } from "../services/reservationService";
 
 function ReservationsPage() {
@@ -18,7 +18,6 @@ function ReservationsPage() {
 
   const [reservations, setReservations] = useState([]);
   const [allReservations, setAllReservations] = useState([]);
-  const [selectedBookings, setSelectedBookings] = useState([]);
 
   const [roomNumber, setRoomNumber] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
@@ -31,7 +30,7 @@ function ReservationsPage() {
   const [editingId, setEditingId] = useState(null);
 
   const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
+  const [size] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
@@ -53,7 +52,7 @@ function ReservationsPage() {
 
   useEffect(() => {
     fetchReservations();
-  }, [page, size]);
+  }, [page]);
 
   useEffect(() => {
     fetchAllReservations();
@@ -94,9 +93,11 @@ function ReservationsPage() {
     setRoomNumber(r.roomNumber);
     setCheckInDate(getCheckIn(r));
     setCheckOutDate(getCheckOut(r));
-    setGuestName(r.guestName || "");
-    setGuestEmail(r.guestEmail || "");
-    setGuestPhone(r.guestPhone || "");
+
+    // ✅ FIXED (backend fields)
+    setGuestName(r.fullName || "");
+    setGuestEmail(r.email || "");
+    setGuestPhone(r.phone || "");
 
     formRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -136,7 +137,6 @@ function ReservationsPage() {
     }
   };
 
-  // 🔥 NEW — AVAILABILITY CHECK
   const handleCheckAvailability = async () => {
 
     if (!roomNumber || !checkInDate || !checkOutDate) {
@@ -160,7 +160,6 @@ function ReservationsPage() {
       } else {
         Swal.fire("Error", "Something went wrong", "error");
       }
-
     }
   };
 
@@ -168,19 +167,20 @@ function ReservationsPage() {
     e.preventDefault();
 
     const result = await Swal.fire({
-      title: editingId ? "Update?" : "Create?",
+      title: editingId ? "Update Reservation?" : "Create Reservation?",
       showCancelButton: true
     });
 
     if (!result.isConfirmed) return;
 
+    // ✅ FIXED PAYLOAD
     const payload = {
       roomNumber: Number(roomNumber),
       checkInDate,
       checkOutDate,
-      guestName,
-      guestEmail,
-      guestPhone
+      fullName: guestName,
+      email: guestEmail,
+      phone: guestPhone
     };
 
     try {
@@ -193,6 +193,7 @@ function ReservationsPage() {
 
       Swal.fire("Success", "Reservation saved successfully", "success");
 
+      // reset
       setEditingId(null);
       setRoomNumber("");
       setCheckInDate("");
@@ -211,7 +212,6 @@ function ReservationsPage() {
       } else {
         Swal.fire("Error", "Something went wrong", "error");
       }
-
     }
   };
 
@@ -229,30 +229,6 @@ function ReservationsPage() {
           value={selectedDate}
           onChange={(date) => {
             setSelectedDate(date);
-            setSelectedBookings(getBookingsForDate(date));
-          }}
-
-          tileDisabled={({ date, view }) => {
-            if (view !== "month") return false;
-            return getBookingsForDate(date).length > 0;
-          }}
-
-          tileClassName={({ date, view }) => {
-            if (view !== "month") return null;
-
-            return date.toDateString() === selectedDate.toDateString()
-              ? "selected-date"
-              : null;
-          }}
-
-          tileContent={({ date, view }) => {
-            if (view !== "month") return null;
-
-            const count = getBookingsForDate(date).length;
-
-            return count > 0 ? (
-              <div style={{ fontSize: "10px" }}>{count}</div>
-            ) : null;
           }}
         />
 
@@ -272,12 +248,7 @@ function ReservationsPage() {
           <input placeholder="Guest Phone" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} className="form-control mb-2" />
 
           <button type="button" className="btn btn-info me-2" onClick={handlePreview}>Preview</button>
-
-          {/* 🔥 NEW BUTTON */}
-          <button type="button" className="btn btn-warning me-2" onClick={handleCheckAvailability}>
-            Check Availability
-          </button>
-
+          <button type="button" className="btn btn-warning me-2" onClick={handleCheckAvailability}>Check Availability</button>
           <button className="btn btn-primary">Save</button>
 
         </form>
@@ -309,7 +280,10 @@ function ReservationsPage() {
                 <tr key={r.id} style={{ background: isCancelled ? "#ffcccc" : "" }}>
                   <td>{r.id}</td>
                   <td>{r.roomNumber}</td>
-                  <td>{r.guestName}</td>
+
+                  {/* ✅ FIXED */}
+                  <td>{r.fullName}</td>
+
                   <td>{getCheckIn(r)} → {getCheckOut(r)}</td>
 
                   <td>

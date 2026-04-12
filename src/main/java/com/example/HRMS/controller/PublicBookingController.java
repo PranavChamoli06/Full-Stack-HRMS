@@ -1,8 +1,6 @@
 package com.example.HRMS.controller;
 
-import com.example.HRMS.dto.PublicBookingRequest;
-import com.example.HRMS.dto.BookingResponse;
-import com.example.HRMS.dto.ReservationResponse;
+import com.example.HRMS.dto.*;
 import com.example.HRMS.entity.Room;
 import com.example.HRMS.service.ReservationService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +18,7 @@ public class PublicBookingController {
 
     // ✅ 1. GET AVAILABLE ROOMS
     @GetMapping("/rooms/available")
-    public List<Room> getAvailableRooms(
+    public List<RoomResponse> getAvailableRooms(
             @RequestParam LocalDate checkIn,
             @RequestParam LocalDate checkOut
     ) {
@@ -44,5 +42,14 @@ public class PublicBookingController {
     @GetMapping("/reservations")
     public ReservationResponse getBooking(@RequestParam String reference) {
         return reservationService.getBookingByReference(reference);
+    }
+
+    @GetMapping("/price-preview")
+    public PricePreviewResponse getPricePreview(
+            @RequestParam Integer roomNumber,
+            @RequestParam LocalDate checkIn,
+            @RequestParam LocalDate checkOut
+    ) {
+        return reservationService.getPricePreview(roomNumber, checkIn, checkOut);
     }
 }

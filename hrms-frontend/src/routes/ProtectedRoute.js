@@ -7,7 +7,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   // Not logged in
   if (!token) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Role not allowed
