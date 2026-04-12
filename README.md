@@ -15,9 +15,10 @@ This project demonstrates **enterprise-level architecture**, combining secure ba
 
 HRMS is a complete system for managing:
 
-* Hotel reservations
+* Hotel reservations (**public + admin booking flows**)
 * Users and roles
-* Admin operations
+* Dynamic pricing strategies
+* Booking lifecycle automation
 * Analytics dashboards
 
 The system is designed with:
@@ -32,7 +33,7 @@ The system is designed with:
 
 # 🏗 Full-Stack Architecture
 
-```id="arch1"
+```
 React Frontend (UI + Routing + Charts)
         │
         │ Axios (REST API Calls)
@@ -49,7 +50,7 @@ MySQL Database
 
 ## 🔙 Backend (Spring Boot)
 
-```id="backend-structure-final"
+```
 src/main/java/com/example/HRMS
 │
 ├── config          # Security, JWT, CORS, Swagger configuration
@@ -66,7 +67,7 @@ src/main/java/com/example/HRMS
 
 Resources:
 
-```id="backend-resources-final"
+```
 src/main/resources
 │
 ├── application.properties
@@ -78,7 +79,7 @@ src/main/resources
 
 ## 🎨 Frontend (React)
 
-```id="frontend-structure-final"
+```
 hrms-frontend/src
 │
 ├── api
@@ -99,7 +100,7 @@ hrms-frontend/src
 
 ## 🔗 Architecture Flow
 
-```id="flow-final"
+```
 UI (React Pages)
    ↓
 Service Layer
@@ -126,18 +127,38 @@ MySQL Database
 * Session handling with auto logout
 * BCrypt password encryption
 * Method-level security
+* Secures admin booking operations
 
 ---
 
 # 🛎 Reservation Management
 
-Full CRUD operations:
+Full reservation lifecycle management:
 
 * Create reservation
 * View reservations
 * Update reservation
 * Delete reservation
 * Pagination support
+
+### Booking Modes
+
+**🔹 Public Booking (Customer Flow)**
+
+* Search rooms by date
+* View dynamic pricing
+* Book without login
+* Receive booking confirmation (email + UI)
+* View booking via reference
+* Cancel booking
+
+**🔹 Admin Booking (On-Prem Flow)**
+
+* Create reservation manually
+* Edit reservation
+* Cancel reservation
+* Calendar-based booking visibility
+* Pagination & dashboard management
 
 ### Business Rules
 
@@ -147,24 +168,44 @@ Full CRUD operations:
 
 ---
 
+## 🛑 Availability Validation
+
+* Prevents double booking
+* Checks overlapping date ranges
+* Returns conflict errors
+
+Integrated in:
+
+* Backend validation
+* Frontend booking flow
+
+👉 Critical production logic
+
+---
+
 # 🔄 Booking Lifecycle (Enterprise Feature)
 
 Reservation states:
 
-PENDING → CONFIRMED → COMPLETED  
-        ↘ CANCELLED  
+PENDING → CONFIRMED → COMPLETED
+↘ CANCELLED
 
 ### Automation
 
-- Reservations automatically move to **COMPLETED** after checkout date
-- Implemented using scheduled backend jobs
-- No manual intervention required
+* Reservations automatically move to **COMPLETED** after checkout date
+* Implemented using scheduled backend jobs
+* No manual intervention required
+
+### Additional Logic
+
+* Works across both public and admin booking flows
+* Ensures consistent state transitions
 
 ### Business Impact
 
-- Accurate reservation tracking
-- Real-world hotel workflow simulation
-- Enables correct revenue calculation
+* Accurate reservation tracking
+* Real-world hotel workflow simulation
+* Enables correct revenue calculation
 
 ---
 
@@ -183,14 +224,14 @@ Admin capabilities:
 
 Admin can:
 
-- Add special pricing (festival / peak days)
-- Update pricing multiplier
-- Delete pricing rules
+* Add special pricing (festival / peak days)
+* Update pricing multiplier
+* Delete pricing rules
 
 ### Key Advantage
 
-- No code changes required
-- Fully dynamic pricing system
+* No code changes required
+* Fully dynamic pricing system
 
 ---
 
@@ -207,19 +248,31 @@ Built using:
 
 ---
 
+## 📅 Calendar-Based Booking View
+
+* Displays bookings per day
+* Disables already booked dates
+* Supports room-wise filtering
+
+👉 Combines backend data with UI intelligence
+
+---
+
 ## 💸 Price Preview (User Feature)
 
 Before booking, users can:
 
-- Preview total price
-- See pricing impact based on selected dates
-- Understand difference between base and final price
+* Preview total price
+* See pricing impact based on selected dates
+* Understand difference between base and final price
+* Displays price per night, total cost, and duration
+* Powered by backend `/price-preview` API
 
 ### Benefits
 
-- Transparent pricing
-- Better user experience
-- Reduces booking confusion
+* Transparent pricing
+* Better user experience
+* Reduces booking confusion
 
 ---
 
@@ -241,10 +294,10 @@ Pricing is calculated **per day**, not static.
 
 ### Pricing Rules
 
-- Weekdays → Base price
-- Weekends → +20% surge
-- Special/Festival pricing → Custom multiplier
-- Festival pricing overrides weekend pricing
+* Weekdays → Base price
+* Weekends → +20% surge
+* Special/Festival pricing → Custom multiplier
+* Festival pricing overrides weekend pricing
 
 ### Architecture
 
@@ -252,9 +305,11 @@ ReservationService → PricingService → SpecialPricingRepository
 
 ### Key Highlights
 
-- Null-safe pricing (no crashes if data missing)
-- Extendable for demand-based pricing
-- Admin-controlled pricing via UI
+* Per-day pricing calculation across booking duration
+* Aggregated total price based on date-wise logic
+* Null-safe pricing (no crashes if data missing)
+* Extendable for demand-based pricing
+* Admin-controlled pricing via UI
 
 ---
 
@@ -262,7 +317,7 @@ ReservationService → PricingService → SpecialPricingRepository
 
 * MySQL
 * Flyway migrations
-* Relational schema (Users, Reservations, Rooms)
+* Relational schema (Users, Reservations, Rooms, SpecialPricing)
 
 ---
 
@@ -270,18 +325,18 @@ ReservationService → PricingService → SpecialPricingRepository
 
 Revenue includes only:
 
-- CONFIRMED reservations
-- COMPLETED reservations
+* CONFIRMED reservations
+* COMPLETED reservations
 
 Excluded:
 
-- PENDING
-- CANCELLED
+* PENDING
+* CANCELLED
 
 ### Why This Matters
 
-- Ensures financial accuracy
-- Matches real-world hotel revenue tracking
+* Ensures financial accuracy
+* Matches real-world hotel revenue tracking
 
 ---
 
@@ -302,12 +357,11 @@ Excluded:
 
 ---
 
-
 # 📅 API Highlights
 
 ### Authentication
 
-```id="api-auth"
+```
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 ```
@@ -316,7 +370,7 @@ POST /api/v1/auth/refresh
 
 ### Reservations
 
-```id="api-res"
+```
 GET /api/v1/reservations
 POST /api/v1/reservations
 PUT /api/v1/reservations/{id}
@@ -327,7 +381,7 @@ DELETE /api/v1/reservations/{id}
 
 ### Users (Admin)
 
-```id="api-user"
+```
 GET /api/v1/users
 POST /api/v1/users
 PUT /api/v1/users/{id}/role
@@ -337,16 +391,18 @@ PUT /api/v1/users/{id}/role
 
 ### Analytics
 
-```id="api-analytics"
+```
 GET /api/v1/analytics/revenue
 GET /api/v1/analytics/occupancy
 GET /api/v1/analytics/monthly-revenue
 GET /api/v1/analytics/cancellation-rate
 ```
 
+---
+
 ### Pricing (Admin)
 
-```id="api-pricing"
+```
 GET /api/v1/admin/pricing  
 POST /api/v1/admin/pricing  
 PUT /api/v1/admin/pricing/{id}  
@@ -359,7 +415,7 @@ DELETE /api/v1/admin/pricing/{id}
 
 ## Backend
 
-```bash id="run-backend"
+```bash
 cd HRMS-Backend
 mvn clean install
 mvn spring-boot:run
@@ -369,7 +425,7 @@ mvn spring-boot:run
 
 ## Frontend
 
-```bash id="run-frontend"
+```bash
 cd hrms-frontend
 npm install
 npm start
@@ -381,19 +437,19 @@ npm start
 
 Frontend:
 
-```id="url-frontend"
+```
 http://localhost:3000
 ```
 
 Backend:
 
-```id="url-backend"
+```
 http://localhost:8080
 ```
 
 Swagger:
 
-```id="url-swagger"
+```
 http://localhost:8080/swagger-ui/index.html
 ```
 
@@ -403,7 +459,7 @@ http://localhost:8080/swagger-ui/index.html
 
 Health check:
 
-```id="monitor-health"
+```
 http://localhost:8080/actuator/health
 ```
 
@@ -438,9 +494,9 @@ http://localhost:8080/actuator/health
 
 ## Key Relationships
 
-- One user can have multiple reservations  
-- One room can have multiple reservations  
-- Each reservation belongs to one user and one room
+* One user can have multiple reservations
+* One room can have multiple reservations
+* Each reservation belongs to one user and one room
 
 ---
 
@@ -500,18 +556,23 @@ http://localhost:8080/actuator/health
 
 ## 🎯 System Capabilities
 
-- Full-stack application  
-- Secure authentication system  
-- Role-based access control  
-- Reservation management (CRUD + Pagination)  
-- Analytics dashboard  
-- Admin management system  
-- Production-ready UI  
-- Booking lifecycle automation  
-- Dynamic pricing engine  
-- Admin-controlled pricing rules  
-- Price preview before booking  
-- Revenue-safe calculation
+* Full-stack application
+* Secure authentication system
+* Role-based access control
+* Reservation management (CRUD + Pagination)
+* Analytics dashboard
+* Admin management system
+* Production-ready UI
+* Booking lifecycle automation
+* Dynamic pricing engine
+* Admin-controlled pricing rules
+* Price preview before booking
+* Revenue-safe calculation
+* Public booking flow (no login)
+* Admin booking management
+* Calendar-based booking visualization
+* Email confirmation system
+* Availability validation (anti double-booking)
 
 ---
 
@@ -519,10 +580,8 @@ http://localhost:8080/actuator/health
 
 Before running the project, set:
 
-DB_USERNAME=your_db_username  
-DB_PASSWORD=your_db_password  
-
----
+DB_USERNAME=your_db_username
+DB_PASSWORD=your_db_password
 
 ### Windows:
 
@@ -537,6 +596,7 @@ setx DB_PASSWORD "yourpassword"
 export DB_USERNAME=root
 export DB_PASSWORD=yourpassword
 ```
+
 ---
 
 # 👨‍💻 Author
