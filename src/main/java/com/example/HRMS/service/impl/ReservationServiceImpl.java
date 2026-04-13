@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
+import com.example.HRMS.event.BookingCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final CustomerRepository customerRepository;
     private final EmailService emailService;
     private final PdfService pdfService;
+    private final ApplicationEventPublisher publisher;
 
     private static final Logger logger =
             LoggerFactory.getLogger(ReservationServiceImpl.class);
@@ -92,7 +95,6 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setEmail(request.getEmail());
         reservation.setPhone(request.getPhone());
 
-        // ✅ ADD THIS
         String reference = "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         reservation.setBookingReference(reference);
 
@@ -377,19 +379,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
 
-        byte[] pdf = pdfService.generateBookingPdf(saved);
-        try {
-            emailService.sendBookingConfirmationWithPdf(
-                    request.getEmail(),
-                    request.getFullName(),
-                    reference,
-                    request.getCheckIn().toString(),
-                    request.getCheckOut().toString(),
-                    pdf
-            );
-        } catch (Exception e) {
-            System.out.println("Email failed: " + e.getMessage());
-        }
+        publisher.publishEvent(new BookingCreatedEvent(saved));
 
         // ✅ RESPONSE
         BookingResponse response = new BookingResponse();

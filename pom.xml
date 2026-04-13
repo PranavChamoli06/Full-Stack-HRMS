@@ -140,6 +140,13 @@
             <version>7.2.5</version>
         </dependency>
 
+        <!--Twilio SMS Service-->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>9.0.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

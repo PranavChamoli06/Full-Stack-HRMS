@@ -13,6 +13,18 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+
+    public void sendBookingConfirmation(String toEmail, String message) {
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+
+        mail.setTo(toEmail);
+        mail.setSubject("Booking Confirmation");
+        mail.setText(message);
+
+        mailSender.send(mail);
+    }
+
     public void sendBookingConfirmationWithPdf(
             String toEmail,
             String name,
