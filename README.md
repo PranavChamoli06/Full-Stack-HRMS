@@ -377,8 +377,10 @@ npm start
 
 Before running the project, set:
 
+```bash
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
+```
 
 ### Windows:
 
