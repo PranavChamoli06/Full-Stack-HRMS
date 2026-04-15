@@ -113,7 +113,7 @@ Integrated in:
 
 ---
 
-# 🔄 Booking Lifecycle (Enterprise Feature)
+# 🔄 Booking Lifecycle
 
 Reservation states:
 
@@ -127,7 +127,7 @@ PENDING → CONFIRMED → COMPLETED
 
 ---
 
-# 📧 Notification System (Phase 2 – Advanced)
+# 📧 Notification System
 
 A **fault-tolerant, asynchronous notification system** ensures reliable communication.
 
