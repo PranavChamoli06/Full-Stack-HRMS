@@ -1,6 +1,6 @@
 package com.example.HRMS.scheduler;
 
-import com.example.HRMS.service.impl.ReservationServiceImpl;
+import com.example.HRMS.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -9,9 +9,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ReservationScheduler {
 
-    private final ReservationServiceImpl reservationService;
+    private final ReservationService reservationService;
 
-    // Runs every day at midnight
     @Scheduled(cron = "0 0 0 * * ?")
     public void completeReservationsTask() {
         reservationService.completePastReservations();

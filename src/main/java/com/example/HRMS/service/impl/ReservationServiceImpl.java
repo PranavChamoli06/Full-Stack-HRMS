@@ -2,31 +2,24 @@ package com.example.HRMS.service.impl;
 
 import com.example.HRMS.dto.*;
 import com.example.HRMS.entity.*;
+import com.example.HRMS.event.BookingCreatedEvent;
 import com.example.HRMS.exception.BookingConflictException;
+import com.example.HRMS.exception.ResourceNotFoundException;
 import com.example.HRMS.repository.*;
-import com.example.HRMS.service.EmailService;
-import com.example.HRMS.service.PdfService;
-import com.example.HRMS.service.ReservationService;
-import com.example.HRMS.service.PricingService;
+import com.example.HRMS.service.*;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.context.ApplicationEventPublisher;
-import com.example.HRMS.event.BookingCreatedEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -42,52 +35,29 @@ public class ReservationServiceImpl implements ReservationService {
     private final PdfService pdfService;
     private final ApplicationEventPublisher publisher;
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(ReservationServiceImpl.class);
+    // ================= CREATE =================
 
     @Override
     public ReservationResponse create(ReservationRequest request) {
 
-        if (request.getRoomNumber() == null) {
-            throw new RuntimeException("Room number is required");
-        }
+        validateDates(request.getCheckInDate(), request.getCheckOutDate());
 
-        if (request.getCheckInDate() == null || request.getCheckOutDate() == null) {
-            throw new RuntimeException("Dates are required");
-        }
-
-        if (request.getCheckInDate().isAfter(request.getCheckOutDate())) {
-            throw new RuntimeException("Check-in date cannot be after check-out date");
-        }
-
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        String username = authentication.getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Room room = roomRepository.findById(request.getRoomNumber())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+        Room room = getRoom(request.getRoomNumber());
 
-        List<Reservation> overlappingReservations =
-                reservationRepository
-                        .findByRoomRoomNumberAndCheckOutDateAfterAndCheckInDateBefore(
-                                room.getRoomNumber(),
-                                request.getCheckInDate(),
-                                request.getCheckOutDate()
-                        );
-
-        if (!overlappingReservations.isEmpty()) {
-            throw new BookingConflictException("Room already booked for selected dates");
-        }
+        validateAvailability(room.getRoomNumber(),
+                request.getCheckInDate(),
+                request.getCheckOutDate());
 
         Reservation reservation = new Reservation();
 
         reservation.setUser(user);
         reservation.setRoom(room);
-
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
 
@@ -95,220 +65,202 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setEmail(request.getEmail());
         reservation.setPhone(request.getPhone());
 
-        String reference = "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        reservation.setBookingReference(reference);
+        reservation.setBookingReference(generateReference());
+        reservation.setStatus(ReservationStatus.PENDING);
 
-        reservation.setStatus(ReservationStatus.PENDING); // optional
+        return map(reservationRepository.save(reservation));
+    }
+
+    // ================= PUBLIC BOOKING =================
+
+    @Override
+    @Transactional
+    public BookingResponse createPublicBooking(PublicBookingRequest request) {
+
+        validateDates(request.getCheckIn(), request.getCheckOut());
+
+        Room room = getRoom(request.getRoomNumber());
+
+        validateAvailability(request.getRoomNumber(),
+                request.getCheckIn(),
+                request.getCheckOut());
+
+        Customer customer = new Customer();
+        customer.setFullName(request.getFullName());
+        customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
+        customerRepository.save(customer);
+
+        Reservation reservation = new Reservation();
+
+        reservation.setRoom(room);
+        reservation.setCustomer(customer);
+        reservation.setCheckInDate(request.getCheckIn());
+        reservation.setCheckOutDate(request.getCheckOut());
+
+        reservation.setFullName(request.getFullName());
+        reservation.setEmail(request.getEmail());
+        reservation.setPhone(request.getPhone());
+
+        String reference = generateReference();
+        reservation.setBookingReference(reference);
+        reservation.setStatus(ReservationStatus.CONFIRMED);
 
         Reservation saved = reservationRepository.save(reservation);
-        return mapToResponse(saved);
+
+        publisher.publishEvent(new BookingCreatedEvent(saved));
+
+        return BookingResponse.builder()
+                .bookingId(saved.getId())
+                .bookingReference(reference)
+                .status(saved.getStatus().name())
+                .build();
     }
+
+    // ================= CRUD =================
 
     @Override
     public List<ReservationResponse> getAll() {
-        return reservationRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
+        return reservationRepository.findAll().stream()
+                .map(this::map)
                 .toList();
     }
 
     @Override
     public ReservationResponse getById(Long id) {
-        Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
-
-        return mapToResponse(reservation);
+        return map(reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found")));
     }
 
     @Override
     public ReservationResponse update(Long id, ReservationRequest request) {
 
-        Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        Reservation r = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
 
-        if (request.getCheckInDate() != null) {
-            reservation.setCheckInDate(request.getCheckInDate());
-        }
+        if (request.getCheckInDate() != null)
+            r.setCheckInDate(request.getCheckInDate());
 
-        if (request.getCheckOutDate() != null) {
-            reservation.setCheckOutDate(request.getCheckOutDate());
-        }
+        if (request.getCheckOutDate() != null)
+            r.setCheckOutDate(request.getCheckOutDate());
 
-        if (request.getFullName() != null) {
-            reservation.setFullName(request.getFullName());
-        }
+        validateDates(r.getCheckInDate(), r.getCheckOutDate());
 
-        if (request.getEmail() != null) {
-            reservation.setEmail(request.getEmail());
-        }
-
-        if (request.getPhone() != null) {
-            reservation.setPhone(request.getPhone());
-        }
-
-        if (reservation.getCheckInDate().isAfter(reservation.getCheckOutDate())) {
-            throw new RuntimeException("Check-in date cannot be after check-out date");
-        }
-
-        Reservation saved = reservationRepository.save(reservation);
-
-        return mapToResponse(saved);
+        return map(reservationRepository.save(r));
     }
 
     @Override
     public void delete(Long id) {
-        Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
-
-        reservationRepository.delete(reservation);
+        reservationRepository.deleteById(id);
     }
+
+    // ================= STATUS =================
+
+    @Override
+    public ReservationResponse updateStatus(Long id, ReservationStatus status) {
+
+        Reservation r = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found"));
+
+        r.setStatus(status);
+
+        return map(reservationRepository.save(r));
+    }
+
+    // ================= FILTER =================
 
     @Override
     public Page<ReservationResponse> getReservations(
             String username,
             LocalDate startDate,
-            Pageable pageable) {
+            Pageable pageable
+    ) {
 
-        Page<Reservation> reservations;
-
-        if (username != null) {
-            reservations = reservationRepository.findByUserUsername(username, pageable);
-        } else if (startDate != null) {
-            reservations = reservationRepository.findByCheckInDateAfter(startDate, pageable);
-        } else {
-            reservations = reservationRepository.findAll(pageable);
-        }
-
-        return reservations.map(this::mapToResponse);
+        return reservationRepository
+                .findByUserUsername(username, pageable)
+                .map(this::map);
     }
 
-    // ================= PRICE CALCULATION =================
-
-    private BigDecimal calculateTotalPrice(Reservation reservation) {
-
-        if (reservation.getRoom() == null) return BigDecimal.ZERO;
-
-        Room.RoomType roomType = reservation.getRoom().getRoomType();
-
-        RoomPricing pricing = roomPricingRepository.findByRoomType(roomType)
-                .orElseThrow(() -> new RuntimeException("Pricing not found"));
-
-        LocalDate checkIn = reservation.getCheckInDate();
-        LocalDate checkOut = reservation.getCheckOutDate();
-
-        if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
-            return BigDecimal.ZERO;
-        }
-
-        BigDecimal basePrice = pricing.getPricePerNight();
-        BigDecimal totalPrice = BigDecimal.ZERO;
-
-        LocalDate currentDate = checkIn;
-
-        while (currentDate.isBefore(checkOut)) {
-
-            double calculated;
-
-            try {
-                calculated = pricingService.calculatePrice(
-                        basePrice.doubleValue(),
-                        currentDate
-                );
-            } catch (Exception e) {
-                logger.error("Pricing error for date {}: {}", currentDate, e.getMessage());
-                calculated = basePrice.doubleValue();
-            }
-
-            totalPrice = totalPrice.add(BigDecimal.valueOf(calculated));
-            currentDate = currentDate.plusDays(1);
-        }
-
-        return totalPrice;
-    }
-
-    // ================= RESPONSE =================
-
-    private ReservationResponse mapToResponse(Reservation reservation) {
-
-        String roomNumber = null;
-        String fullName = null;
-        String email = null;
-        String phone = null;
-        String createdBy = null;
-
-        if (reservation.getRoom() != null) {
-            roomNumber = String.valueOf(reservation.getRoom().getRoomNumber());
-        }
-
-        if (reservation.getUser() != null) {
-            createdBy = reservation.getUser().getUsername();
-        }
-
-        fullName = reservation.getFullName();
-        email = reservation.getEmail();
-        phone = reservation.getPhone();
-
-        BigDecimal totalPrice = calculateTotalPrice(reservation);
-
-        return ReservationResponse.builder()
-                .id(reservation.getId())
-                .roomNumber(roomNumber)
-                .fullName(fullName)
-                .email(email)
-                .phone(phone)
-                .createdBy(createdBy)
-                .checkInDate(reservation.getCheckInDate())
-                .checkOutDate(reservation.getCheckOutDate())
-                .status(reservation.getStatus().name())
-                .totalPrice(totalPrice)
-                .build();
-    }
-
-    @Override
-    public ReservationResponse updateStatus(Long id, ReservationStatus status) {
-
-        Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
-
-        ReservationStatus currentStatus = reservation.getStatus();
-
-        if (currentStatus == ReservationStatus.CANCELLED) {
-            throw new RuntimeException("Cancelled reservations cannot be modified");
-        }
-
-        if (currentStatus == ReservationStatus.CONFIRMED
-                && status == ReservationStatus.PENDING) {
-            throw new RuntimeException("Invalid status transition");
-        }
-
-        reservation.setStatus(status);
-
-        Reservation saved = reservationRepository.save(reservation);
-
-        return mapToResponse(saved);
-    }
+    // ================= AVAILABILITY =================
 
     @Override
     public boolean isRoomAvailable(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
+
         return !reservationRepository.existsOverlappingReservation(
-                roomNumber,
-                checkIn,
-                checkOut
+                roomNumber, checkIn, checkOut
         );
     }
 
-    @Transactional
-    public void completePastReservations() {
+    @Override
+    public List<RoomResponse> getAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
 
-        List<Reservation> reservations = reservationRepository.findReservationsToComplete();
-
-        for (Reservation reservation : reservations) {
-            reservation.setStatus(ReservationStatus.COMPLETED);
-        }
-
-        reservationRepository.saveAll(reservations);
+        return roomRepository.findAll().stream()
+                .filter(room -> isRoomAvailable(room.getRoomNumber(), checkIn, checkOut))
+                .map(room -> RoomResponse.builder()
+                        .roomNumber(room.getRoomNumber())
+                        .roomType(room.getRoomType().name())
+                        .price(null)
+                        .build())
+                .toList();
     }
 
+    // ================= CANCEL =================
+
+    @Override
+    public void cancelBooking(String reference) {
+
+        Reservation r = reservationRepository.findByBookingReference(reference)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        r.setStatus(ReservationStatus.CANCELLED);
+
+        reservationRepository.save(r);
+    }
+
+    @Override
+    public ReservationResponse getBookingByReference(String reference) {
+
+        return map(reservationRepository.findByBookingReference(reference)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found")));
+    }
+
+    // ================= PRICE =================
+
+    @Override
+    public PricePreviewResponse getPricePreview(
+            Integer roomNumber,
+            LocalDate checkIn,
+            LocalDate checkOut
+    ) {
+
+        Room room = getRoom(roomNumber);
+
+        RoomPricing pricing = roomPricingRepository
+                .findByRoomType(room.getRoomType())
+                .orElseThrow(() -> new RuntimeException("Pricing not found"));
+
+        double base = pricing.getPricePerNight().doubleValue();
+        double total = 0;
+        int days = 0;
+
+        LocalDate current = checkIn;
+
+        while (current.isBefore(checkOut)) {
+            total += pricingService.calculatePrice(base, current);
+            current = current.plusDays(1);
+            days++;
+        }
+
+        return PricePreviewResponse.builder()
+                .pricePerNight(days == 0 ? (int) base : (int) (total / days))
+                .totalPrice((int) total)
+                .nights(days)
+                .build();
+    }
+
+    // ================= STATS =================
+
+    @Override
     public Map<String, Long> getReservationStats() {
 
         Map<String, Long> stats = new HashMap<>();
@@ -321,171 +273,60 @@ public class ReservationServiceImpl implements ReservationService {
         return stats;
     }
 
-    @Transactional
-    public BookingResponse createPublicBooking(PublicBookingRequest request) {
+    // ================= HELPERS =================
 
-        // ✅ VALIDATION
-        if (request.getRoomNumber() == null) {
-            throw new RuntimeException("Room number is required");
-        }
+    private void validateDates(LocalDate checkIn, LocalDate checkOut) {
 
-        if (request.getCheckIn() == null || request.getCheckOut() == null) {
-            throw new RuntimeException("Dates are required");
-        }
+        if (checkIn == null || checkOut == null)
+            throw new IllegalArgumentException("Dates required");
 
-        if (request.getCheckIn().isAfter(request.getCheckOut())) {
-            throw new RuntimeException("Invalid date range");
-        }
-
-        // ✅ FETCH ROOM
-        Room room = roomRepository.findById(request.getRoomNumber())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-
-        // ✅ CHECK AVAILABILITY (CRITICAL)
-        boolean available = !reservationRepository.existsOverlappingReservation(
-                request.getRoomNumber(),
-                request.getCheckIn(),
-                request.getCheckOut()
-        );
-
-        if (!available) {
-            throw new RuntimeException("Room not available for selected dates");
-        }
-
-        // ✅ CREATE CUSTOMER
-        Customer customer = new Customer();
-        customer.setFullName(request.getFullName());
-        customer.setEmail(request.getEmail());
-        customer.setPhone(request.getPhone());
-
-        customerRepository.save(customer);
-
-        // ✅ CREATE RESERVATION
-        Reservation reservation = new Reservation();
-        reservation.setRoom(room);
-        reservation.setCustomer(customer); // ⚠️ make sure this field exists in entity
-
-        reservation.setCheckInDate(request.getCheckIn());
-        reservation.setCheckOutDate(request.getCheckOut());
-
-        reservation.setFullName(request.getFullName());
-        reservation.setEmail(request.getEmail());
-        reservation.setPhone(request.getPhone());
-
-        String reference = "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        reservation.setBookingReference(reference);
-
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-
-        Reservation saved = reservationRepository.save(reservation);
-
-        publisher.publishEvent(new BookingCreatedEvent(saved));
-
-        // ✅ RESPONSE
-        BookingResponse response = new BookingResponse();
-        response.setBookingId(saved.getId());
-        response.setStatus(saved.getStatus().name());
-        response.setBookingReference(reference);
-
-        return response;
+        if (!checkIn.isBefore(checkOut))
+            throw new IllegalArgumentException("Invalid date range");
     }
 
-    @Override
-    public List<RoomResponse> getAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
+    private Room getRoom(Integer roomNumber) {
 
-        List<Room> rooms = roomRepository.findAvailableRooms(checkIn, checkOut);
-
-        return rooms.stream().map(room -> {
-
-            // 🔹 Get base pricing
-            RoomPricing pricing = roomPricingRepository
-                    .findByRoomType(room.getRoomType())
-                    .orElseThrow(() -> new RuntimeException("Pricing not found"));
-
-            double basePrice = pricing.getPricePerNight().doubleValue();
-
-            double total = 0;
-            int days = 0;
-
-            LocalDate current = checkIn;
-
-            while (current.isBefore(checkOut)) {
-                total += pricingService.calculatePrice(basePrice, current);
-                current = current.plusDays(1);
-                days++;
-            }
-
-            double pricePerNight = days == 0 ? basePrice : total / days;
-
-            // ✅ ROUND TO INTEGER
-            int roundedPrice = (int) Math.round(pricePerNight);
-
-            // 🔹 Build DTO manually
-            return RoomResponse.builder()
-                    .roomNumber(room.getRoomNumber())
-                    .roomType(room.getRoomType().name())
-                    .price(roundedPrice)
-                    .build();
-
-        }).toList();
+        return roomRepository.findByRoomNumber(roomNumber)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Room not found: " + roomNumber)
+                );
     }
 
-    @Override
-    public void cancelBooking(String reference) {
+    private void validateAvailability(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
 
-        Reservation reservation = reservationRepository
-                .findByBookingReference(reference)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
-
-        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
-            throw new RuntimeException("Booking already cancelled");
+        if (!isRoomAvailable(roomNumber, checkIn, checkOut)) {
+            throw new BookingConflictException("Room already booked");
         }
-
-        reservation.setStatus(ReservationStatus.CANCELLED);
-
-        reservationRepository.save(reservation);
     }
 
-    @Override
-    public ReservationResponse getBookingByReference(String reference) {
-
-        Reservation reservation = reservationRepository
-                .findByBookingReference(reference)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
-
-        return mapToResponse(reservation);
+    private String generateReference() {
+        return "HRMS-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 
-    @Override
-    public PricePreviewResponse getPricePreview(Integer roomNumber, LocalDate checkIn, LocalDate checkOut) {
+    private ReservationResponse map(Reservation r) {
 
-        Room room = roomRepository.findByRoomNumber(roomNumber)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-
-        RoomPricing pricing = roomPricingRepository
-                .findByRoomType(room.getRoomType())
-                .orElseThrow(() -> new RuntimeException("Pricing not found"));
-
-        double basePrice = pricing.getPricePerNight().doubleValue();
-
-        double total = 0;
-        int days = 0;
-
-        LocalDate current = checkIn;
-
-        while (current.isBefore(checkOut)) {
-            total += pricingService.calculatePrice(basePrice, current);
-            current = current.plusDays(1);
-            days++;
-        }
-
-        int totalPrice = (int) Math.round(total);
-        int pricePerNight = days == 0 ? (int) basePrice : (int) Math.round(total / days);
-
-        return PricePreviewResponse.builder()
-                .pricePerNight(pricePerNight)
-                .totalPrice(totalPrice)
-                .nights(days)
+        return ReservationResponse.builder()
+                .id(r.getId())
+                .roomNumber(String.valueOf(r.getRoom().getRoomNumber()))
+                .fullName(r.getFullName())
+                .email(r.getEmail())
+                .phone(r.getPhone())
+                .checkInDate(r.getCheckInDate())
+                .checkOutDate(r.getCheckOutDate())
+                .status(r.getStatus().name())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void completePastReservations() {
+
+        List<Reservation> reservations = reservationRepository.findReservationsToComplete();
+
+        for (Reservation r : reservations) {
+            r.setStatus(ReservationStatus.COMPLETED);
+        }
+
+        reservationRepository.saveAll(reservations);
     }
 }

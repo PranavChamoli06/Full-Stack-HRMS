@@ -27,11 +27,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     long countByStatus(ReservationStatus status);
+
     Optional<Reservation> findByBookingReference(String bookingReference);
 
     // ================= ANALYTICS =================
 
-    // TOTAL REVENUE (WITH NIGHTS * PRICE)
     @Query("""
     SELECT SUM(
         p.pricePerNight * 
@@ -44,8 +44,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     """)
     BigDecimal calculateTotalRevenue();
 
-
-    // COUNT DISTINCT BOOKED ROOMS
     @Query("""
     SELECT COUNT(DISTINCT rm.roomNumber)
     FROM Reservation r
@@ -54,8 +52,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     """)
     long countBookedRooms();
 
-
-    // TOTAL DISTINCT ROOMS USED IN RESERVATIONS
     @Query("""
     SELECT COUNT(DISTINCT rm.roomNumber)
     FROM Reservation r
@@ -63,8 +59,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     """)
     long countDistinctRooms();
 
-
-    // MONTHLY REVENUE (CORRECT JOIN)
     @Query("""
     SELECT FUNCTION('MONTHNAME', r.checkInDate),
            SUM(
@@ -79,7 +73,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     """)
     List<Object[]> getMonthlyRevenue();
 
-    //
     @Query("""
     SELECT COUNT(r) > 0 FROM Reservation r
     WHERE r.room.roomNumber = :roomNumber
@@ -93,7 +86,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             LocalDate checkOutDate
     );
 
-    // AUTO COMPLETE BOOKINGS
     @Query("""
     SELECT r FROM Reservation r
     WHERE r.status = 'CONFIRMED'

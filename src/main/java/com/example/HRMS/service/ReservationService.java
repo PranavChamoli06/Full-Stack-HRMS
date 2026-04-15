@@ -43,4 +43,6 @@ public interface ReservationService {
     ReservationResponse getBookingByReference(String reference);
 
     PricePreviewResponse getPricePreview(Integer roomNumber, LocalDate checkIn, LocalDate checkOut);
+
+    void completePastReservations();
 }
