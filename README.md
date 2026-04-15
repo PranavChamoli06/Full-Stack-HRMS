@@ -19,6 +19,7 @@ HRMS is a complete system for managing:
 * Users and roles
 * Dynamic pricing strategies
 * Booking lifecycle automation
+* **Asynchronous notification system (Email + SMS)**
 * Analytics dashboards
 
 The system is designed with:
@@ -27,6 +28,7 @@ The system is designed with:
 * Secure authentication system
 * Role-based access control
 * Clean layered backend design
+* Event-driven + async processing
 * Interactive analytics dashboard
 
 ---
@@ -41,78 +43,6 @@ React Frontend (UI + Routing + Charts)
 Spring Boot Backend (Business Logic + Security)
         │
         ▼
-MySQL Database
-```
-
----
-
-# 📂 Project Structure
-
-## 🔙 Backend (Spring Boot)
-
-```
-src/main/java/com/example/HRMS
-│
-├── config          # Security, JWT, CORS, Swagger configuration
-├── controller      # REST API controllers
-├── dto             # Request & response models
-├── entity          # Database entities
-├── exception       # Global exception handling
-├── repository      # JPA repositories
-├── service         # Business logic
-│   ├── impl
-│   └── ai
-└── HRMSApplication
-```
-
-Resources:
-
-```
-src/main/resources
-│
-├── application.properties
-├── db/migration
-└── static
-```
-
----
-
-## 🎨 Frontend (React)
-
-```
-hrms-frontend/src
-│
-├── api
-├── components
-├── layouts
-├── pages
-│   ├── LoginPage
-│   ├── DashboardPage
-│   ├── ReservationsPage
-│   └── AdminPage
-├── services
-├── utils
-├── App.js
-└── index.js
-```
-
----
-
-## 🔗 Architecture Flow
-
-```
-UI (React Pages)
-   ↓
-Service Layer
-   ↓
-Axios Client (JWT Interceptor)
-   ↓
-Spring Boot Controllers
-   ↓
-Service Layer
-   ↓
-Repository Layer
-   ↓
 MySQL Database
 ```
 
@@ -148,7 +78,7 @@ Full reservation lifecycle management:
 * Search rooms by date
 * View dynamic pricing
 * Book without login
-* Receive booking confirmation (email + UI)
+* Receive booking confirmation (email + SMS)
 * View booking via reference
 * Cancel booking
 
@@ -194,18 +124,69 @@ PENDING → CONFIRMED → COMPLETED
 
 * Reservations automatically move to **COMPLETED** after checkout date
 * Implemented using scheduled backend jobs
-* No manual intervention required
 
-### Additional Logic
+---
 
-* Works across both public and admin booking flows
-* Ensures consistent state transitions
+# 📧 Notification System (Phase 2 – Advanced)
 
-### Business Impact
+A **fault-tolerant, asynchronous notification system** ensures reliable communication.
 
-* Accurate reservation tracking
-* Real-world hotel workflow simulation
-* Enables correct revenue calculation
+### 🔁 Notification Flow
+
+```
+Booking Created
+     ↓
+Async Notification Trigger
+     ↓
+Log Created (PENDING)
+     ↓
+Send Email / SMS
+     ↓
+SUCCESS / FAILED
+     ↓
+Retry Scheduler (FAILED → SUCCESS)
+```
+
+### 🔹 Features
+
+* Email integration (SMTP – Gmail)
+* SMS integration (Twilio)
+* Async processing using `@Async`
+* Multi-channel delivery
+
+### 🔹 Logging System
+
+* `NotificationLog` entity tracks:
+
+  * type (EMAIL / SMS)
+  * recipient
+  * message
+  * status
+  * error_message
+  * timestamp
+
+Lifecycle:
+
+```
+PENDING → SUCCESS / FAILED
+```
+
+### 🔹 Failure Handling
+
+* Failures are logged
+* Error messages captured
+* System remains stable
+
+### 🔹 Retry Mechanism
+
+* Scheduler retries failed notifications
+* Automatic recovery
+
+### 🔹 Impact
+
+* Reliable communication
+* Scalable system
+* Production-grade fault tolerance
 
 ---
 
@@ -216,144 +197,103 @@ Admin capabilities:
 * View all users
 * Create new users
 * Update user roles
-* Role-based UI restriction
 
 ---
 
 ## ⚙️ Pricing Management (Admin Feature)
 
-Admin can:
-
-* Add special pricing (festival / peak days)
-* Update pricing multiplier
+* Add special pricing
+* Update multiplier
 * Delete pricing rules
-
-### Key Advantage
-
-* No code changes required
-* Fully dynamic pricing system
 
 ---
 
 # 📊 Dashboard & Analytics
 
-* KPI cards (Total reservations, Active bookings)
-* Reservation trends (monthly)
+* KPI cards
+* Reservation trends
 * Revenue analytics
 * Occupancy analytics
-
-Built using:
-
-* Recharts
 
 ---
 
 ## 📅 Calendar-Based Booking View
 
 * Displays bookings per day
-* Disables already booked dates
-* Supports room-wise filtering
-
-👉 Combines backend data with UI intelligence
+* Disables booked dates
+* Room-based filtering
 
 ---
 
 ## 💸 Price Preview (User Feature)
 
-Before booking, users can:
-
 * Preview total price
-* See pricing impact based on selected dates
-* Understand difference between base and final price
-* Displays price per night, total cost, and duration
-* Powered by backend `/price-preview` API
-
-### Benefits
-
-* Transparent pricing
-* Better user experience
-* Reduces booking confusion
+* Price per night + total
+* Powered by `/price-preview` API
 
 ---
 
 # ⚙ Backend Features
 
 * REST API architecture
-* JWT authentication & authorization
+* JWT authentication
 * Global exception handling
-* Analytics endpoints
-* Flyway database migrations
-* Swagger API documentation
-* Spring Boot Actuator monitoring
+* Flyway migrations
+* Swagger docs
+* **Async processing (`@Async`)**
+* **Scheduler jobs (retry + lifecycle)**
 
 ---
 
 ## 💰 Dynamic Pricing Engine
 
-Pricing is calculated **per day**, not static.
-
-### Pricing Rules
-
-* Weekdays → Base price
-* Weekends → +20% surge
-* Special/Festival pricing → Custom multiplier
-* Festival pricing overrides weekend pricing
-
-### Architecture
-
-ReservationService → PricingService → SpecialPricingRepository
-
-### Key Highlights
-
-* Per-day pricing calculation across booking duration
-* Aggregated total price based on date-wise logic
-* Null-safe pricing (no crashes if data missing)
-* Extendable for demand-based pricing
-* Admin-controlled pricing via UI
+* Weekday → Base
+* Weekend → +20%
+* Festival → Override
 
 ---
 
 # 🗄 Database
 
 * MySQL
-* Flyway migrations
-* Relational schema (Users, Reservations, Rooms, SpecialPricing)
+* Tables:
+
+  * Users
+  * Reservations
+  * Rooms
+  * SpecialPricing
+  * **NotificationLog**
 
 ---
 
 ## 📈 Revenue Calculation Logic
 
-Revenue includes only:
+Includes:
 
-* CONFIRMED reservations
-* COMPLETED reservations
+* CONFIRMED
+* COMPLETED
 
-Excluded:
+Excludes:
 
 * PENDING
 * CANCELLED
-
-### Why This Matters
-
-* Ensures financial accuracy
-* Matches real-world hotel revenue tracking
 
 ---
 
 # 🐳 DevOps & Tools
 
-* Docker & Docker Compose
-* Swagger / OpenAPI
-* Spring Boot Actuator
+* Docker
+* Swagger
+* Actuator
 
 ---
 
 ## 🔁 Booking Flow
 
-1. User creates reservation → PENDING
-2. (Future: payment integration) → CONFIRMED
-3. After checkout → automatically COMPLETED
-4. User/Admin can cancel → CANCELLED
+1. Create → PENDING
+2. Confirm → CONFIRMED
+3. Auto → COMPLETED
+4. Cancel → CANCELLED
 
 ---
 
@@ -366,137 +306,27 @@ POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 ```
 
----
-
 ### Reservations
 
 ```
 GET /api/v1/reservations
 POST /api/v1/reservations
-PUT /api/v1/reservations/{id}
-DELETE /api/v1/reservations/{id}
 ```
 
----
-
-### Users (Admin)
+### Pricing
 
 ```
-GET /api/v1/users
-POST /api/v1/users
-PUT /api/v1/users/{id}/role
-```
-
----
-
-### Analytics
-
-```
-GET /api/v1/analytics/revenue
-GET /api/v1/analytics/occupancy
-GET /api/v1/analytics/monthly-revenue
-GET /api/v1/analytics/cancellation-rate
-```
-
----
-
-### Pricing (Admin)
-
-```
-GET /api/v1/admin/pricing  
-POST /api/v1/admin/pricing  
-PUT /api/v1/admin/pricing/{id}  
-DELETE /api/v1/admin/pricing/{id}
+GET /api/v1/admin/pricing
 ```
 
 ---
 
 # ▶ Running the Project
 
-## Backend
-
 ```bash
-cd HRMS-Backend
-mvn clean install
 mvn spring-boot:run
-```
-
----
-
-## Frontend
-
-```bash
-cd hrms-frontend
-npm install
 npm start
 ```
-
----
-
-# 🌐 Application URLs
-
-Frontend:
-
-```
-http://localhost:3000
-```
-
-Backend:
-
-```
-http://localhost:8080
-```
-
-Swagger:
-
-```
-http://localhost:8080/swagger-ui/index.html
-```
-
----
-
-# 📊 Monitoring
-
-Health check:
-
-```
-http://localhost:8080/actuator/health
-```
-
----
-
-# 🧠 AI Integration (Future Scope)
-
-* Demand prediction
-* Dynamic pricing
-* Recommendation engine
-* Predictive analytics
-
----
-
-# 📈 Future Enhancements
-
-* AI-based booking prediction
-* Payment integration
-* Email notifications
-* Cloud deployment (AWS / Docker / Kubernetes)
-* Microservices architecture
-
----
-
-# 🗄 Database Design
-
-## ER Diagram
-
-![ER Diagram](assets/screenshots/er-diagram.png)
-
----
-
-## Key Relationships
-
-* One user can have multiple reservations
-* One room can have multiple reservations
-* Each reservation belongs to one user and one room
 
 ---
 
@@ -506,50 +336,24 @@ http://localhost:8080/actuator/health
 
 ![Login Page](assets/screenshots/login.png)
 
----
-
 ## 📊 Dashboard
 
 ![Dashboard Overview](assets/screenshots/dashboard.png)
 
----
-
 ## 🛎 Reservations Module
 
-### Reservation Table
-
 ![Reservations Table](assets/screenshots/reservation-table.png)
-
-### Create / Edit Reservation
-
 ![Reservation Form](assets/screenshots/reservation-form.png)
-
----
 
 ## 👥 Admin Panel
 
-### User Management
-
 ![Admin Panel](assets/screenshots/admin-panel.png)
-
-### Role Management
-
 ![Role Update](assets/screenshots/admin-roles.png)
-
----
 
 ## 📈 Analytics Charts
 
-### Reservation Trends
-
 ![Reservation Trends](assets/screenshots/chart-reservations.png)
-
-### Revenue Chart
-
 ![Revenue Chart](assets/screenshots/chart-revenue.png)
-
-### Occupancy Chart
-
 ![Occupancy Chart](assets/screenshots/chart-occupancy.png)
 
 ---
@@ -557,45 +361,15 @@ http://localhost:8080/actuator/health
 ## 🎯 System Capabilities
 
 * Full-stack application
-* Secure authentication system
-* Role-based access control
-* Reservation management (CRUD + Pagination)
-* Analytics dashboard
-* Admin management system
-* Production-ready UI
-* Booking lifecycle automation
+* Secure authentication
+* Role-based access
+* Reservation lifecycle
 * Dynamic pricing engine
-* Admin-controlled pricing rules
-* Price preview before booking
-* Revenue-safe calculation
-* Public booking flow (no login)
-* Admin booking management
-* Calendar-based booking visualization
-* Email confirmation system
-* Availability validation (anti double-booking)
-
----
-
-## 🔐 Environment Variables
-
-Before running the project, set:
-
-DB_USERNAME=your_db_username
-DB_PASSWORD=your_db_password
-
-### Windows:
-
-```bash
-setx DB_USERNAME "root"
-setx DB_PASSWORD "yourpassword"
-```
-
-### Mac/Linux:
-
-```bash
-export DB_USERNAME=root
-export DB_PASSWORD=yourpassword
-```
+* Async notification system
+* Retry + logging mechanism
+* Calendar visualization
+* Email + SMS integration
+* Availability validation
 
 ---
 
