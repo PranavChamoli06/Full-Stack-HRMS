@@ -1,5 +1,6 @@
 package com.example.HRMS.dto;
 
+import com.example.HRMS.enums.PaymentMode;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -24,6 +25,7 @@ public class ReservationResponse {
     private String phone;
     private String fullName;
     private BigDecimal totalPrice;
+    private PaymentMode paymentMode;
 
     private String createdBy; // who created booking (admin/staff)
 }
