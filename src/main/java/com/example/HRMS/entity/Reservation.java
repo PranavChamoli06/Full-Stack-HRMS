@@ -1,5 +1,6 @@
 package com.example.HRMS.entity;
 
+import com.example.HRMS.enums.PaymentMode;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -44,4 +45,8 @@ public class Reservation extends BaseEntity {
 
     @Column(name = "booking_reference", unique = true)
     private String bookingReference;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_mode", columnDefinition = "VARCHAR(20)")
+    private PaymentMode paymentMode;
 }

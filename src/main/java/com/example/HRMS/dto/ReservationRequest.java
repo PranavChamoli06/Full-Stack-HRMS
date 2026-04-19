@@ -1,5 +1,6 @@
 package com.example.HRMS.dto;
 
+import com.example.HRMS.enums.PaymentMode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,4 +19,5 @@ public class ReservationRequest {
     private String email;
     private String phone;
     private String fullName;
+    private PaymentMode paymentMode;
 }

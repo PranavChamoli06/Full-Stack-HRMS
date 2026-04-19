@@ -147,6 +147,13 @@
             <version>9.0.0</version>
         </dependency>
 
+        <!--Razorpay Payment-->
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>

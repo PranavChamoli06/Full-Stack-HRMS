@@ -1,5 +1,6 @@
 package com.example.HRMS.dto;
 
+import com.example.HRMS.enums.PaymentMode;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -14,4 +15,5 @@ public class PublicBookingRequest {
     private Integer roomNumber;
     private LocalDate checkIn;
     private LocalDate checkOut;
+    private PaymentMode paymentMode;
 }

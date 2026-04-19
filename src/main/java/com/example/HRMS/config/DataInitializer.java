@@ -31,17 +31,17 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("ADMIN CREATED");
         }
 
-        // Create USER
-        if (userRepository.findByUsername("user").isEmpty()) {
+        // Create STAFF
+        if (userRepository.findByUsername("staff").isEmpty()) {
 
             User user = new User();
-            user.setUsername("user");
-            user.setPassword(passwordEncoder.encode("user123"));
+            user.setUsername("staff");
+            user.setPassword(passwordEncoder.encode("staff123"));
             user.setRole(Role.STAFF);
 
             userRepository.save(user);
 
-            System.out.println("USER CREATED");
+            System.out.println("STAFF CREATED");
         }
 
         // Create MANAGER
