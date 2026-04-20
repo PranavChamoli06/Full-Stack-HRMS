@@ -11,9 +11,9 @@ import {
   deletePricing,
 } from "../services/pricingService";
 
-function AdminPage() {
+import "../styles/AdminPage.css";
 
-  // ================= USER STATE =================
+function AdminPage() {
   const [users, setUsers] = useState([]);
   const [loadingUserId, setLoadingUserId] = useState(null);
 
@@ -21,7 +21,6 @@ function AdminPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState("STAFF");
 
-  // ================= PRICING STATE =================
   const [pricing, setPricing] = useState([]);
   const [pricingForm, setPricingForm] = useState({
     date: "",
@@ -29,23 +28,21 @@ function AdminPage() {
     description: "",
   });
 
-  // ================= FETCH USERS =================
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
       setUsers(data);
     } catch (error) {
-      console.error("Error fetching users", error);
+      console.error(error);
     }
   };
 
-  // ================= FETCH PRICING =================
   const fetchPricing = async () => {
     try {
       const data = await getAllPricing();
       setPricing(data);
     } catch (error) {
-      console.error("Error fetching pricing", error);
+      console.error(error);
     }
   };
 
@@ -54,14 +51,11 @@ function AdminPage() {
     fetchPricing();
   }, []);
 
-  // ================= USER ACTIONS =================
   const handleRoleChange = async (userId, role) => {
     try {
       setLoadingUserId(userId);
       await updateUserRole(userId, role);
       fetchUsers();
-    } catch (error) {
-      console.error("Error updating role", error);
     } finally {
       setLoadingUserId(null);
     }
@@ -75,26 +69,21 @@ function AdminPage() {
       return;
     }
 
-    try {
-      await createUser({
-        username: newUsername,
-        password: newPassword,
-        role: newRole,
-      });
+    await createUser({
+      username: newUsername,
+      password: newPassword,
+      role: newRole,
+    });
 
-      alert("User created successfully");
+    alert("User created successfully");
 
-      setNewUsername("");
-      setNewPassword("");
-      setNewRole("STAFF");
+    setNewUsername("");
+    setNewPassword("");
+    setNewRole("STAFF");
 
-      fetchUsers();
-    } catch (error) {
-      console.error("Error creating user", error);
-    }
+    fetchUsers();
   };
 
-  // ================= PRICING ACTIONS =================
   const handleCreatePricing = async (e) => {
     e.preventDefault();
 
@@ -103,46 +92,37 @@ function AdminPage() {
       return;
     }
 
-    try {
-      await createPricing(pricingForm);
+    await createPricing(pricingForm);
 
-      alert("Pricing added successfully");
+    alert("Pricing added successfully");
 
-      setPricingForm({
-        date: "",
-        multiplier: "",
-        description: "",
-      });
+    setPricingForm({
+      date: "",
+      multiplier: "",
+      description: "",
+    });
 
-      fetchPricing();
-    } catch (error) {
-      console.error("Error creating pricing", error);
-    }
+    fetchPricing();
   };
 
   const handleDeletePricing = async (id) => {
-    try {
-      await deletePricing(id);
-      fetchPricing();
-    } catch (error) {
-      console.error("Error deleting pricing", error);
-    }
+    await deletePricing(id);
+    fetchPricing();
   };
 
   return (
-    <div className="container-fluid">
+    <div className="admin-page">
 
-      <h2 className="mb-4">Admin Panel</h2>
+      <h2 className="page-title mb-4">Admin Panel</h2>
 
-      {/* ================= USER MANAGEMENT ================= */}
-      <div className="card p-3 mb-4">
+      {/* Create User */}
+      <div className="glass-chart-card mb-4">
 
-        <h4>Create User</h4>
+        <h4 className="mb-3">Create User</h4>
 
         <form onSubmit={handleCreateUser}>
-
           <input
-            className="form-control mb-2"
+            className="form-control glass-input mb-2"
             type="text"
             placeholder="Username"
             value={newUsername}
@@ -150,7 +130,7 @@ function AdminPage() {
           />
 
           <input
-            className="form-control mb-2"
+            className="form-control glass-input mb-2"
             type="password"
             placeholder="Password"
             value={newPassword}
@@ -158,7 +138,7 @@ function AdminPage() {
           />
 
           <select
-            className="form-control mb-2"
+            className="form-control glass-input mb-3"
             value={newRole}
             onChange={(e) => setNewRole(e.target.value)}
           >
@@ -170,17 +150,15 @@ function AdminPage() {
           <button className="btn btn-success">
             Create User
           </button>
-
         </form>
 
       </div>
 
-      {/* USERS TABLE */}
-      <div className="card p-3 mb-4">
+      {/* Users Table */}
+      <div className="glass-chart-card mb-4">
 
-        <table className="table table-bordered table-striped mb-0">
-
-          <thead className="table-light">
+        <table className="table table-dark table-hover custom-table mb-0">
+          <thead>
             <tr>
               <th>ID</th>
               <th>Username</th>
@@ -190,19 +168,15 @@ function AdminPage() {
           </thead>
 
           <tbody>
-
             {users.map((user) => (
-
               <tr key={user.id}>
-
                 <td>{user.id}</td>
                 <td>{user.username}</td>
                 <td>{user.role}</td>
 
                 <td>
-
                   <select
-                    className="form-select"
+                    className="form-select glass-input"
                     value={user.role}
                     disabled={loadingUserId === user.id}
                     onChange={(e) =>
@@ -213,29 +187,24 @@ function AdminPage() {
                     <option value="MANAGER">MANAGER</option>
                     <option value="STAFF">STAFF</option>
                   </select>
-
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
 
         </table>
 
       </div>
 
-      {/* ================= PRICING MANAGEMENT ================= */}
-      <div className="card p-3">
+      {/* Pricing */}
+      <div className="glass-chart-card">
 
-        <h4>Pricing Management</h4>
+        <h4 className="mb-3">Pricing Management</h4>
 
-        {/* FORM */}
         <form onSubmit={handleCreatePricing}>
 
           <input
-            className="form-control mb-2"
+            className="form-control glass-input mb-2"
             type="date"
             value={pricingForm.date}
             onChange={(e) =>
@@ -244,23 +213,29 @@ function AdminPage() {
           />
 
           <input
-            className="form-control mb-2"
+            className="form-control glass-input mb-2"
             type="number"
             step="0.01"
             placeholder="Multiplier (e.g. 1.40)"
             value={pricingForm.multiplier}
             onChange={(e) =>
-              setPricingForm({ ...pricingForm, multiplier: e.target.value })
+              setPricingForm({
+                ...pricingForm,
+                multiplier: e.target.value,
+              })
             }
           />
 
           <input
-            className="form-control mb-2"
+            className="form-control glass-input mb-3"
             type="text"
             placeholder="Description"
             value={pricingForm.description}
             onChange={(e) =>
-              setPricingForm({ ...pricingForm, description: e.target.value })
+              setPricingForm({
+                ...pricingForm,
+                description: e.target.value,
+              })
             }
           />
 
@@ -270,10 +245,8 @@ function AdminPage() {
 
         </form>
 
-        {/* TABLE */}
-        <table className="table table-bordered table-striped mt-3">
-
-          <thead className="table-light">
+        <table className="table table-dark table-hover custom-table mt-4">
+          <thead>
             <tr>
               <th>Date</th>
               <th>Multiplier</th>
@@ -283,7 +256,6 @@ function AdminPage() {
           </thead>
 
           <tbody>
-
             {pricing.map((p) => (
               <tr key={p.id}>
                 <td>{p.date}</td>
@@ -299,7 +271,6 @@ function AdminPage() {
                 </td>
               </tr>
             ))}
-
           </tbody>
 
         </table>

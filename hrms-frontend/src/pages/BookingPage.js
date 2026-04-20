@@ -4,8 +4,10 @@ import axios from "../api/axios";
 import Swal from "sweetalert2";
 import PublicLayout from "../layouts/PublicLayout";
 
-export default function BookingPage() {
+import bookBg from "../assets/book-bg.jpg";
+import "../styles/BookingPage.css";
 
+export default function BookingPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -29,15 +31,13 @@ export default function BookingPage() {
         checkOut
       }
     })
-    .then(res => setPreview(res.data))
-    .catch(err => console.error(err));
+    .then((res) => setPreview(res.data))
+    .catch((err) => console.error(err));
 
   }, [room, checkIn, checkOut]);
 
-  // 💳 PAYMENT FLOW
   const startPayment = async (reservationId, bookingData) => {
     try {
-
       const orderRes = await axios.post("/payment/create-order", {
         reservationId
       });
@@ -53,7 +53,6 @@ export default function BookingPage() {
         order_id: order.id,
 
         handler: async function (response) {
-
           await axios.post("/payment/verify", {
             reservationId,
             razorpayPaymentId: response.razorpay_payment_id,
@@ -73,12 +72,12 @@ export default function BookingPage() {
 
         prefill: {
           name: fullName,
-          email: email,
+          email,
           contact: phone
         },
 
         theme: {
-          color: "#3399cc"
+          color: "#8e63ff"
         }
       };
 
@@ -86,20 +85,16 @@ export default function BookingPage() {
 
       rzp.open();
 
-      rzp.on("payment.failed", function (response) {
-        console.error(response.error);
+      rzp.on("payment.failed", function () {
         Swal.fire("Error", "Payment Failed", "error");
       });
 
     } catch (err) {
-      console.error(err);
       Swal.fire("Error", "Payment initiation failed", "error");
     }
   };
 
-  // 🧾 BOOKING HANDLER
   const handleBooking = async () => {
-
     if (!fullName || !email || !phone) {
       Swal.fire("Error", "All fields required", "error");
       return;
@@ -129,7 +124,6 @@ export default function BookingPage() {
       }
 
     } catch (err) {
-      console.error(err);
       Swal.fire("Error", "Booking failed", "error");
     } finally {
       setLoading(false);
@@ -138,55 +132,71 @@ export default function BookingPage() {
 
   return (
     <PublicLayout>
-      <h2 style={{ textAlign: "center" }}>Book Room</h2>
+      <div
+        className="booking-page"
+        style={{ backgroundImage: `url(${bookBg})` }}
+      >
+        <div className="booking-card">
 
-      <p>Room: {room?.roomNumber}</p>
-      <p>Check-in: {checkIn}</p>
-      <p>Check-out: {checkOut}</p>
+          <h2>Book Room</h2>
 
-      {preview && (
-        <div>
-          <p>Price/Night: ₹{preview.pricePerNight}</p>
-          <p>Nights: {preview.nights}</p>
-          <p><strong>Total: ₹{preview.totalPrice}</strong></p>
+          <div className="booking-summary">
+            <p>Room: {room?.roomNumber}</p>
+            <p>Check-in: {checkIn}</p>
+            <p>Check-out: {checkOut}</p>
+
+            {preview && (
+              <>
+                <p>Price/Night: ₹{preview.pricePerNight}</p>
+                <p>Nights: {preview.nights}</p>
+                <p><strong>Total: ₹{preview.totalPrice}</strong></p>
+              </>
+            )}
+          </div>
+
+          <div className="booking-form">
+
+            <input
+              className="glass-input"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+
+            <input
+              className="glass-input"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <input
+              className="glass-input"
+              placeholder="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+
+            <select
+              className="glass-input"
+              value={paymentMode}
+              onChange={(e) => setPaymentMode(e.target.value)}
+            >
+              <option value="PREPAID">Pay Now (Online)</option>
+              <option value="PAY_AT_HOTEL">Pay at Hotel</option>
+            </select>
+
+            <button
+              onClick={handleBooking}
+              disabled={loading}
+              className="confirm-btn"
+            >
+              {loading ? "Processing..." : "Confirm Booking"}
+            </button>
+
+          </div>
+
         </div>
-      )}
-
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-        marginTop: "20px"
-      }}>
-        <input
-          placeholder="Full Name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
-
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <select
-          value={paymentMode}
-          onChange={(e) => setPaymentMode(e.target.value)}
-        >
-          <option value="PREPAID">Pay Now (Online)</option>
-          <option value="PAY_AT_HOTEL">Pay at Hotel</option>
-        </select>
-
-        <button onClick={handleBooking} disabled={loading}>
-          {loading ? "Processing..." : "Confirm Booking"}
-        </button>
       </div>
     </PublicLayout>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Swal from "sweetalert2";
+import "../styles/Reservations.css";
 
 import {
   getReservations,
@@ -13,7 +14,6 @@ import {
 } from "../services/reservationService";
 
 function ReservationsPage() {
-
   const formRef = useRef(null);
 
   const [reservations, setReservations] = useState([]);
@@ -27,100 +27,116 @@ function ReservationsPage() {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
 
+  const [paymentMode, setPaymentMode] = useState("PAY_AT_HOTEL");
+
   const [editingId, setEditingId] = useState(null);
 
   const [page, setPage] = useState(0);
-  const [size] = useState(10);
+  const [size] = useState(50);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // ================= FETCH =================
-
   const fetchReservations = async () => {
-    const data = await getReservations(page, size);
-    setReservations(data.content);
-    setTotalPages(data.totalPages);
-    setTotalElements(data.totalElements);
+    try {
+      const data = await getReservations(page, size);
+
+      setReservations(data.content || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalElements(data.totalElements || 0);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const fetchAllReservations = async () => {
-    const data = await getReservations(0, 1000);
-    setAllReservations(data.content);
+    try {
+      const data = await getReservations(0, 1000);
+      setAllReservations(data.content || []);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
     fetchReservations();
-  }, [page]);
-
-  useEffect(() => {
     fetchAllReservations();
-  }, []);
 
-  // ================= HELPERS =================
+    const interval = setInterval(fetchReservations, 3000);
 
-  const parseDate = (str) => {
-    const [y, m, d] = str.split("-");
-    return new Date(y, m - 1, d);
-  };
-
-  const normalize = (d) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return () => clearInterval(interval);
+  }, [page]);
 
   const getCheckIn = (r) => r.checkInDate || r.check_in_date;
   const getCheckOut = (r) => r.checkOutDate || r.check_out_date;
 
-  const getBookingsForDate = (date) => {
-    const current = normalize(date);
+  const getPaymentMode = (r) =>
+    r.paymentMode || r.payment_mode || "-";
 
-    return allReservations.filter((r) => {
+  const formatPaymentMode = (r) =>
+    getPaymentMode(r) === "-"
+      ? "-"
+      : getPaymentMode(r).replaceAll("_", " ");
 
-      if (!roomNumber) return false;
-      if (Number(r.roomNumber) !== Number(roomNumber)) return false;
-
-      const start = normalize(parseDate(getCheckIn(r)));
-      const end = normalize(parseDate(getCheckOut(r)));
-
-      return current >= start && current < end;
-    });
-  };
-
-  // ================= ACTIONS =================
+  const getStatus = (r) =>
+    r.status || r.reservationStatus || "-";
 
   const handleEdit = (r) => {
+    if (getStatus(r) === "CANCELLED") return;
+
     setEditingId(r.id);
-    setRoomNumber(r.roomNumber);
+    setRoomNumber(r.roomNumber || r.room_number);
     setCheckInDate(getCheckIn(r));
     setCheckOutDate(getCheckOut(r));
-
-    // ✅ FIXED (backend fields)
-    setGuestName(r.fullName || "");
+    setGuestName(r.fullName || r.full_name || "");
     setGuestEmail(r.email || "");
     setGuestPhone(r.phone || "");
+    setPaymentMode(
+      r.paymentMode ||
+        r.payment_mode ||
+        "PAY_AT_HOTEL"
+    );
 
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
+    formRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
   };
 
   const handleCancel = async (id) => {
     const result = await Swal.fire({
       title: "Cancel Reservation?",
+      text: "This action cannot be undone.",
       icon: "warning",
-      showCancelButton: true
+      showCancelButton: true,
+      confirmButtonText: "Yes, Cancel"
     });
 
     if (!result.isConfirmed) return;
 
-    await cancelReservation(id);
-    Swal.fire("Cancelled!", "", "success");
+    try {
+      await cancelReservation(id);
 
-    fetchReservations();
-    fetchAllReservations();
+      Swal.fire(
+        "Cancelled",
+        "Reservation cancelled successfully",
+        "success"
+      );
+
+      fetchReservations();
+      fetchAllReservations();
+    } catch (error) {
+      Swal.fire("Error", "Unable to cancel", "error");
+    }
   };
 
   const handlePreview = async () => {
     if (!roomNumber || !checkInDate || !checkOutDate) {
-      Swal.fire("Error", "Fill all fields first", "warning");
+      Swal.fire(
+        "Error",
+        "Fill all fields first",
+        "warning"
+      );
       return;
     }
 
@@ -131,16 +147,27 @@ function ReservationsPage() {
         checkOutDate
       });
 
-      Swal.fire("Preview Price", `₹ ${res.data}`, "info");
+      Swal.fire(
+        "Price Preview",
+        `₹ ${res.data}`,
+        "info"
+      );
     } catch {
-      Swal.fire("Error", "Preview failed", "error");
+      Swal.fire(
+        "Error",
+        "Preview failed",
+        "error"
+      );
     }
   };
 
   const handleCheckAvailability = async () => {
-
     if (!roomNumber || !checkInDate || !checkOutDate) {
-      Swal.fire("Error", "Fill all fields first", "warning");
+      Swal.fire(
+        "Error",
+        "Fill all fields first",
+        "warning"
+      );
       return;
     }
 
@@ -151,160 +178,330 @@ function ReservationsPage() {
         checkOutDate
       });
 
-      Swal.fire("Available", "Room is available", "success");
-
-    } catch (error) {
-
-      if (error.response?.status === 500) {
-        Swal.fire("Not Available", "Room already booked", "error");
-      } else {
-        Swal.fire("Error", "Something went wrong", "error");
-      }
+      Swal.fire(
+        "Available",
+        "Room is available",
+        "success"
+      );
+    } catch {
+      Swal.fire(
+        "Not Available",
+        "Room already booked",
+        "error"
+      );
     }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setRoomNumber("");
+    setCheckInDate("");
+    setCheckOutDate("");
+    setGuestName("");
+    setGuestEmail("");
+    setGuestPhone("");
+    setPaymentMode("PAY_AT_HOTEL");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const result = await Swal.fire({
-      title: editingId ? "Update Reservation?" : "Create Reservation?",
-      showCancelButton: true
-    });
-
-    if (!result.isConfirmed) return;
-
-    // ✅ FIXED PAYLOAD
     const payload = {
       roomNumber: Number(roomNumber),
       checkInDate,
       checkOutDate,
       fullName: guestName,
       email: guestEmail,
-      phone: guestPhone
+      phone: guestPhone,
+      paymentMode
     };
 
     try {
-
       if (editingId) {
         await updateReservation(editingId, payload);
       } else {
         await createReservation(payload);
       }
 
-      Swal.fire("Success", "Reservation saved successfully", "success");
+      Swal.fire(
+        "Success",
+        "Reservation saved successfully",
+        "success"
+      );
 
-      // reset
-      setEditingId(null);
-      setRoomNumber("");
-      setCheckInDate("");
-      setCheckOutDate("");
-      setGuestName("");
-      setGuestEmail("");
-      setGuestPhone("");
-
+      resetForm();
       fetchReservations();
       fetchAllReservations();
-
     } catch (error) {
-
       if (error.response?.status === 409) {
-        Swal.fire("Booking Conflict", error.response.data, "warning");
+        Swal.fire(
+          "Conflict",
+          error.response.data,
+          "warning"
+        );
       } else {
-        Swal.fire("Error", "Something went wrong", "error");
+        Swal.fire(
+          "Error",
+          "Something went wrong",
+          "error"
+        );
       }
     }
   };
 
-  // ================= UI =================
+  const getStatusClass = (status) => {
+    if (status === "CONFIRMED") return "text-success";
+    if (status === "PENDING") return "text-warning";
+    if (status === "CANCELLED") return "text-danger";
+    if (status === "COMPLETED") return "text-info";
+    return "";
+  };
 
   return (
-    <div className="container-fluid">
+    <div>
+      <h2 className="page-title mb-4">
+        Reservations
+      </h2>
 
-      <h2>Reservations</h2>
-
-      {/* CALENDAR */}
-      <div className="card p-3 mb-4">
-
+      <div className="glass-chart-card mb-4">
         <Calendar
           value={selectedDate}
-          onChange={(date) => {
-            setSelectedDate(date);
-          }}
+          onChange={(date) =>
+            setSelectedDate(date)
+          }
         />
-
       </div>
 
-      {/* FORM */}
-      <div ref={formRef} className="card p-3 mb-4">
-
+      <div
+        ref={formRef}
+        className="glass-chart-card mb-4"
+      >
         <form onSubmit={handleSubmit}>
+          <input
+            placeholder="Room Number"
+            value={roomNumber}
+            onChange={(e) =>
+              setRoomNumber(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
 
-          <input placeholder="Room Number" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="form-control mb-2" />
-          <input type="date" value={checkInDate} onChange={e => setCheckInDate(e.target.value)} className="form-control mb-2" />
-          <input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="form-control mb-2" />
+          <input
+            type="date"
+            value={checkInDate}
+            onChange={(e) =>
+              setCheckInDate(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
 
-          <input placeholder="Guest Name" value={guestName} onChange={e => setGuestName(e.target.value)} className="form-control mb-2" />
-          <input placeholder="Guest Email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} className="form-control mb-2" />
-          <input placeholder="Guest Phone" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} className="form-control mb-2" />
+          <input
+            type="date"
+            value={checkOutDate}
+            onChange={(e) =>
+              setCheckOutDate(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
 
-          <button type="button" className="btn btn-info me-2" onClick={handlePreview}>Preview</button>
-          <button type="button" className="btn btn-warning me-2" onClick={handleCheckAvailability}>Check Availability</button>
-          <button className="btn btn-primary">Save</button>
+          <input
+            placeholder="Guest Name"
+            value={guestName}
+            onChange={(e) =>
+              setGuestName(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
 
+          <input
+            placeholder="Guest Email"
+            value={guestEmail}
+            onChange={(e) =>
+              setGuestEmail(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
+
+          <input
+            placeholder="Guest Phone"
+            value={guestPhone}
+            onChange={(e) =>
+              setGuestPhone(e.target.value)
+            }
+            className="form-control glass-input mb-2"
+          />
+
+          <select
+            value={paymentMode}
+            onChange={(e) =>
+              setPaymentMode(e.target.value)
+            }
+            className="form-control glass-input mb-3"
+          >
+            <option value="PAY_AT_HOTEL">
+              Pay at Hotel
+            </option>
+            <option value="PREPAID">
+              Prepaid
+            </option>
+          </select>
+
+          <button
+            type="button"
+            className="btn btn-info me-2"
+            onClick={handlePreview}
+          >
+            Preview
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-warning me-2"
+            onClick={handleCheckAvailability}
+          >
+            Check Availability
+          </button>
+
+          <button className="btn btn-primary">
+            {editingId ? "Update" : "Save"}
+          </button>
         </form>
-
       </div>
 
-      {/* TABLE */}
-      <div className="card p-3">
+      <div className="glass-chart-card">
+        <h4 className="mb-3">
+          Total: {totalElements}
+        </h4>
 
-        <h5>Total: {totalElements}</h5>
+        <div className="table-responsive">
+          <table className="table table-dark table-hover align-middle custom-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Room</th>
+                <th>Guest</th>
+                <th>Dates</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
 
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Room</th>
-              <th>Guest</th>
-              <th>Dates</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+            <tbody>
+              {reservations.map((r) => {
+                const status = getStatus(r);
 
-          <tbody>
-            {reservations.map(r => {
+                return (
+                  <tr
+                    key={r.id}
+                    style={{
+                      opacity:
+                        status === "CANCELLED"
+                          ? 0.55
+                          : 1
+                    }}
+                  >
+                    <td>{r.id}</td>
 
-              const isCancelled = r.status === "CANCELLED";
+                    <td>
+                      {r.roomNumber ||
+                        r.room_number}
+                    </td>
 
-              return (
-                <tr key={r.id} style={{ background: isCancelled ? "#ffcccc" : "" }}>
-                  <td>{r.id}</td>
-                  <td>{r.roomNumber}</td>
+                    <td>
+                      {r.fullName ||
+                        r.full_name}
+                    </td>
 
-                  {/* ✅ FIXED */}
-                  <td>{r.fullName}</td>
+                    <td>
+                      {getCheckIn(r)} →{" "}
+                      {getCheckOut(r)}
+                    </td>
 
-                  <td>{getCheckIn(r)} → {getCheckOut(r)}</td>
+                    <td>
+                      {formatPaymentMode(r)}
+                    </td>
 
-                  <td>
-                    {!isCancelled && (
-                      <>
-                        <button className="btn btn-success me-2" onClick={() => handleEdit(r)}>Edit</button>
-                        <button className="btn btn-danger" onClick={() => handleCancel(r.id)}>Cancel</button>
-                      </>
-                    )}
+                    <td>
+                      <span
+                        className={getStatusClass(
+                          status
+                        )}
+                      >
+                        {status}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button
+                        className="btn btn-success btn-sm me-2"
+                        disabled={
+                          status ===
+                          "CANCELLED"
+                        }
+                        onClick={() =>
+                          handleEdit(r)
+                        }
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        className="btn btn-danger btn-sm"
+                        disabled={
+                          status ===
+                          "CANCELLED"
+                        }
+                        onClick={() =>
+                          handleCancel(
+                            r.id
+                          )
+                        }
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {reservations.length ===
+                0 && (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="text-center"
+                  >
+                    No Reservations Found
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        <button className="btn btn-warning me-2" disabled={page === 0} onClick={() => setPage(page - 1)}>Prev</button>
-        <button className="btn btn-success" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Next</button>
+        <button
+          className="btn btn-warning me-2"
+          disabled={page === 0}
+          onClick={() =>
+            setPage(page - 1)
+          }
+        >
+          Prev
+        </button>
 
+        <button
+          className="btn btn-success"
+          disabled={
+            page >= totalPages - 1
+          }
+          onClick={() =>
+            setPage(page + 1)
+          }
+        >
+          Next
+        </button>
       </div>
-
     </div>
   );
 }

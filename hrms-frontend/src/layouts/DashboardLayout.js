@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
+import "../styles/Dashboard.css";
 
 function DashboardLayout({ children }) {
-
   const role = localStorage.getItem("role");
   const navigate = useNavigate();
 
@@ -15,53 +16,47 @@ function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="d-flex min-vh-100">
+    <div className="dashboard-shell">
 
-      {/* Sidebar */}
-      <div className="bg-dark text-white p-3" style={{ width: "220px" }}>
+      {/* Top Navbar */}
+      <header className="top-navbar">
 
-        <h3>HRMS</h3>
+        <div className="nav-brand">
+          HRMS
+        </div>
 
-        <p className="small mt-2">
-          Role: {role}
-        </p>
-
-        <nav className="d-flex flex-column mt-3">
+        <nav className="top-nav-links">
 
           {(role === "ADMIN" || role === "MANAGER") && (
-            <Link to="/dashboard" className="text-white text-decoration-none mb-2 p-2 rounded">
+            <Link to="/dashboard" className="nav-link-item">
               Dashboard
             </Link>
           )}
 
-            <Link to="/reservations" className="text-white text-decoration-none mb-2 p-2 rounded">
-              Reservations
-            </Link>
+          <Link to="/reservations" className="nav-link-item">
+            Reservations
+          </Link>
 
           {role === "ADMIN" && (
-            <Link to="/admin" className="text-white text-decoration-none mb-2 p-2 rounded">
+            <Link to="/admin" className="nav-link-item">
               Admin
             </Link>
           )}
 
         </nav>
 
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="btn btn-danger mt-4 w-100"
-        >
-          Logout
+        <button className="logout-icon-btn" onClick={handleLogout}>
+          <FiLogOut size={22} />
         </button>
 
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="flex-grow-1 p-4">
-        <div className="bg-white bg-opacity-75 p-4 rounded shadow">
+      <main className="dashboard-main">
+        <div className="content-glass">
           {children}
         </div>
-      </div>
+      </main>
 
     </div>
   );

@@ -1,0 +1,133 @@
+.booking-page {
+  min-height: 100vh;
+  padding: 30px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.booking-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 10, 5, 0.55);
+}
+
+/* Main Glass Card */
+.booking-card {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+  max-width: 620px;
+  padding: 40px;
+
+  border-radius: 24px;
+
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255,255,255,0.12);
+
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+.booking-card h2 {
+  color: white;
+  text-align: center;
+  font-size: 38px;
+  font-weight: 700;
+  margin-bottom: 28px;
+}
+
+/* Summary */
+.booking-summary {
+  color: white;
+  margin-bottom: 22px;
+  padding: 18px;
+  border-radius: 16px;
+
+  background: rgba(255,255,255,0.06);
+}
+
+.booking-summary p {
+  margin-bottom: 8px;
+}
+
+/* Form */
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.glass-input {
+  height: 48px;
+  padding: 0 14px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+
+  background: rgba(255,255,255,0.10);
+  color: white;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: #8e63ff;
+}
+
+.glass-input::placeholder {
+  color: rgba(255,255,255,0.65);
+}
+
+.glass-input option {
+  background: #2a1a14;
+  color: white;
+}
+
+/* Button */
+.confirm-btn {
+  height: 50px;
+  margin-top: 8px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #8e63ff;
+  color: white;
+
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+
+  transition: 0.3s ease;
+}
+
+.confirm-btn:hover {
+  background: #7448f0;
+  transform: translateY(-2px);
+}
+
+.confirm-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .booking-card {
+    padding: 25px;
+  }
+
+  .booking-card h2 {
+    font-size: 28px;
+  }
+}

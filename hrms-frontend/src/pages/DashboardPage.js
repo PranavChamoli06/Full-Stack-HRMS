@@ -16,7 +16,6 @@ import {
 } from "recharts";
 
 function DashboardPage() {
-
   const [reservations, setReservations] = useState([]);
   const [stats, setStats] = useState({});
   const [dateFilter, setDateFilter] = useState("ALL");
@@ -30,8 +29,7 @@ function DashboardPage() {
     try {
       const data = await getReservations(0, 100);
       setReservations(data?.content || []);
-    } catch (error) {
-      console.error("Error loading reservations", error);
+    } catch {
       setReservations([]);
     }
   };
@@ -48,13 +46,11 @@ function DashboardPage() {
 
       const data = await res.json();
       setStats(data);
-    } catch (error) {
-      console.error("Error loading stats", error);
+    } catch {
       setStats({});
     }
   };
 
-  /* FILTER */
   const filterReservations = () => {
     if (dateFilter === "ALL") return reservations;
 
@@ -72,11 +68,8 @@ function DashboardPage() {
   };
 
   const filteredReservations = filterReservations();
-
-  /* KPIs */
   const totalReservations = filteredReservations.length;
 
-  /* CHART DATA */
   const reservationsPerMonth = {};
   filteredReservations.forEach((r) => {
     const month = r.checkInDate.substring(0, 7);
@@ -88,7 +81,6 @@ function DashboardPage() {
     reservations: reservationsPerMonth[month]
   }));
 
-  /* REVENUE */
   const revenuePerMonth = {};
   filteredReservations.forEach((r) => {
     const month = r.checkInDate.substring(0, 7);
@@ -120,6 +112,7 @@ function DashboardPage() {
   if (months.length >= 2) {
     const curr = revenuePerMonth[months.at(-1)];
     const prev = revenuePerMonth[months.at(-2)];
+
     if (prev > 0) {
       revenueGrowth = ((curr - prev) / prev) * 100;
     }
@@ -127,7 +120,6 @@ function DashboardPage() {
 
   revenueGrowth = Math.round(revenueGrowth);
 
-  /* OCCUPANCY */
   const totalRooms = 20;
   const occupiedRooms = filteredReservations.length;
 
@@ -142,98 +134,73 @@ function DashboardPage() {
   ];
 
   return (
-    <div className="container-fluid">
+    <div>
 
-      <h2 className="mb-4">Dashboard</h2>
+      <h2 className="page-title mb-4">Dashboard</h2>
 
-      {/* FILTER */}
       <div className="btn-group mb-4">
-        <button className="btn btn-outline-primary" onClick={() => setDateFilter("ALL")}>All</button>
-        <button className="btn btn-outline-primary" onClick={() => setDateFilter("7D")}>7D</button>
-        <button className="btn btn-outline-primary" onClick={() => setDateFilter("30D")}>30D</button>
-        <button className="btn btn-outline-primary" onClick={() => setDateFilter("6M")}>6M</button>
+        <button className="btn btn-outline-light" onClick={() => setDateFilter("ALL")}>All</button>
+        <button className="btn btn-outline-light" onClick={() => setDateFilter("7D")}>7D</button>
+        <button className="btn btn-outline-light" onClick={() => setDateFilter("30D")}>30D</button>
+        <button className="btn btn-outline-light" onClick={() => setDateFilter("6M")}>6M</button>
       </div>
 
-      {/* KPI CARDS */}
       <div className="d-flex gap-3 flex-wrap mb-4">
 
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Total Reservations</h6>
-          <h3>{totalReservations}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Revenue</h6>
-          <h3>₹{totalRevenue.toLocaleString()}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Growth</h6>
+        <div className="glass-card-small"><h6>Total Reservations</h6><h3>{totalReservations}</h3></div>
+        <div className="glass-card-small"><h6>Revenue</h6><h3>₹{totalRevenue.toLocaleString()}</h3></div>
+        <div className="glass-card-small"><h6>Growth</h6>
           <h3 className={revenueGrowth >= 0 ? "text-success" : "text-danger"}>
             {revenueGrowth >= 0 ? "↑" : "↓"} {Math.abs(revenueGrowth)}%
           </h3>
         </div>
 
-        {/* STATUS CARDS */}
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Pending</h6>
-          <h3>{stats.PENDING || 0}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Confirmed</h6>
-          <h3>{stats.CONFIRMED || 0}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Completed</h6>
-          <h3>{stats.COMPLETED || 0}</h3>
-        </div>
-
-        <div className="card text-center p-3" style={{ width: "200px" }}>
-          <h6>Cancelled</h6>
-          <h3>{stats.CANCELLED || 0}</h3>
-        </div>
+        <div className="glass-card-small"><h6>Pending</h6><h3>{stats.PENDING || 0}</h3></div>
+        <div className="glass-card-small"><h6>Confirmed</h6><h3>{stats.CONFIRMED || 0}</h3></div>
+        <div className="glass-card-small"><h6>Completed</h6><h3>{stats.COMPLETED || 0}</h3></div>
+        <div className="glass-card-small"><h6>Cancelled</h6><h3>{stats.CANCELLED || 0}</h3></div>
 
       </div>
 
-      {/* CHARTS */}
       <div className="row g-4">
 
         <div className="col-md-6">
-          <div className="card p-3">
+          <div className="glass-chart-card">
             <h5>Reservation Trends</h5>
+
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="reservations" stroke="#0d6efd" />
+                <Line type="monotone" dataKey="reservations" stroke="#8e63ff" />
               </LineChart>
             </ResponsiveContainer>
+
           </div>
         </div>
 
         <div className="col-md-6">
-          <div className="card p-3">
+          <div className="glass-chart-card">
             <h5>Revenue Trend</h5>
+
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={revenueChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="revenue" fill="#198754" />
+                <Bar dataKey="revenue" fill="#38d39f" />
               </BarChart>
             </ResponsiveContainer>
+
           </div>
         </div>
 
       </div>
 
-      {/* OCCUPANCY */}
-      <div className="card p-3 mt-4 text-center">
+      <div className="glass-chart-card mt-4 text-center">
         <h5>Room Occupancy</h5>
 
         <ResponsiveContainer width="100%" height={250}>
@@ -246,14 +213,14 @@ function DashboardPage() {
               innerRadius={70}
               outerRadius={100}
             >
-              <Cell fill="#dc3545" />
+              <Cell fill="#ff5c8a" />
               <Cell fill="#e9ecef" />
             </Pie>
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
 
-        <h3 className="mt-2">{occupancyPercent}%</h3>
+        <h3>{occupancyPercent}%</h3>
       </div>
 
     </div>

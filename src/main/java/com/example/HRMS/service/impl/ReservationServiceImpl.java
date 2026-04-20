@@ -45,11 +45,14 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("Payment mode is required");
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
         String username = auth.getName();
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found"));
 
         Room room = getRoom(request.getRoomNumber());
 
@@ -77,10 +80,13 @@ public class ReservationServiceImpl implements ReservationService {
             reservation.setStatus(ReservationStatus.PENDING);
         }
 
-        Reservation saved = reservationRepository.save(reservation);
+        Reservation saved =
+                reservationRepository.save(reservation);
 
         if (saved.getPaymentMode() == PaymentMode.PAY_AT_HOTEL) {
-            publisher.publishEvent(new BookingCreatedEvent(saved));
+            publisher.publishEvent(
+                    new BookingCreatedEvent(saved)
+            );
         }
 
         return map(saved);
@@ -88,9 +94,14 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     @Transactional
-    public BookingResponse createPublicBooking(PublicBookingRequest request) {
+    public BookingResponse createPublicBooking(
+            PublicBookingRequest request
+    ) {
 
-        validateDates(request.getCheckIn(), request.getCheckOut());
+        validateDates(
+                request.getCheckIn(),
+                request.getCheckOut()
+        );
 
         Room room = getRoom(request.getRoomNumber());
 
@@ -128,10 +139,13 @@ public class ReservationServiceImpl implements ReservationService {
             reservation.setStatus(ReservationStatus.CONFIRMED);
         }
 
-        Reservation saved = reservationRepository.save(reservation);
+        Reservation saved =
+                reservationRepository.save(reservation);
 
         if (saved.getPaymentMode() == PaymentMode.PAY_AT_HOTEL) {
-            publisher.publishEvent(new BookingCreatedEvent(saved));
+            publisher.publishEvent(
+                    new BookingCreatedEvent(saved)
+            );
         }
 
         return BookingResponse.builder()
@@ -154,16 +168,23 @@ public class ReservationServiceImpl implements ReservationService {
         return map(
                 reservationRepository.findById(id)
                         .orElseThrow(() ->
-                                new ResourceNotFoundException("Reservation not found"))
+                                new ResourceNotFoundException(
+                                        "Reservation not found"
+                                ))
         );
     }
 
     @Override
-    public ReservationResponse update(Long id, ReservationRequest request) {
+    public ReservationResponse update(
+            Long id,
+            ReservationRequest request
+    ) {
 
         Reservation r = reservationRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Reservation not found"));
+                        new ResourceNotFoundException(
+                                "Reservation not found"
+                        ));
 
         if (request.getCheckInDate() != null)
             r.setCheckInDate(request.getCheckInDate());
@@ -174,21 +195,33 @@ public class ReservationServiceImpl implements ReservationService {
         if (request.getPaymentMode() != null)
             r.setPaymentMode(request.getPaymentMode());
 
-        validateDates(r.getCheckInDate(), r.getCheckOutDate());
+        validateDates(
+                r.getCheckInDate(),
+                r.getCheckOutDate()
+        );
 
-        return map(reservationRepository.save(r));
+        return map(
+                reservationRepository.save(r)
+        );
     }
 
     @Override
-    public ReservationResponse updateStatus(Long id, ReservationStatus status) {
+    public ReservationResponse updateStatus(
+            Long id,
+            ReservationStatus status
+    ) {
 
         Reservation r = reservationRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Reservation not found"));
+                        new ResourceNotFoundException(
+                                "Reservation not found"
+                        ));
 
         r.setStatus(status);
 
-        return map(reservationRepository.save(r));
+        return map(
+                reservationRepository.save(r)
+        );
     }
 
     @Override
@@ -203,7 +236,7 @@ public class ReservationServiceImpl implements ReservationService {
             Pageable pageable
     ) {
         return reservationRepository
-                .findByUserUsername(username, pageable)
+                .findAll(pageable)
                 .map(this::map);
     }
 
@@ -213,9 +246,12 @@ public class ReservationServiceImpl implements ReservationService {
             LocalDate checkIn,
             LocalDate checkOut
     ) {
-        return !reservationRepository.existsOverlappingReservation(
-                roomNumber, checkIn, checkOut
-        );
+        return !reservationRepository
+                .existsOverlappingReservation(
+                        roomNumber,
+                        checkIn,
+                        checkOut
+                );
     }
 
     @Override
@@ -235,21 +271,31 @@ public class ReservationServiceImpl implements ReservationService {
                 )
                 .map(room -> {
 
-                    RoomPricing pricing = roomPricingRepository
-                            .findByRoomType(room.getRoomType())
-                            .orElse(null);
+                    RoomPricing pricing =
+                            roomPricingRepository
+                                    .findByRoomType(
+                                            room.getRoomType()
+                                    )
+                                    .orElse(null);
 
                     if (pricing == null) {
                         return RoomResponse.builder()
-                                .roomNumber(room.getRoomNumber())
-                                .roomType(room.getRoomType().name())
+                                .roomNumber(
+                                        room.getRoomNumber()
+                                )
+                                .roomType(
+                                        room.getRoomType()
+                                                .name()
+                                )
                                 .price(0)
                                 .totalPrice(0)
                                 .nights(0)
                                 .build();
                     }
 
-                    double base = pricing.getPricePerNight().doubleValue();
+                    double base =
+                            pricing.getPricePerNight()
+                                    .doubleValue();
 
                     double total = 0;
                     int nights = 0;
@@ -257,16 +303,29 @@ public class ReservationServiceImpl implements ReservationService {
                     LocalDate current = checkIn;
 
                     while (current.isBefore(checkOut)) {
-                        total += pricingService.calculatePrice(base, current);
+                        total += pricingService
+                                .calculatePrice(
+                                        base,
+                                        current
+                                );
+
                         current = current.plusDays(1);
                         nights++;
                     }
 
-                    int avgPrice = nights == 0 ? 0 : (int) (total / nights);
+                    int avgPrice =
+                            nights == 0
+                                    ? 0
+                                    : (int) (total / nights);
 
                     return RoomResponse.builder()
-                            .roomNumber(room.getRoomNumber())
-                            .roomType(room.getRoomType().name())
+                            .roomNumber(
+                                    room.getRoomNumber()
+                            )
+                            .roomType(
+                                    room.getRoomType()
+                                            .name()
+                            )
                             .price(avgPrice)
                             .totalPrice((int) total)
                             .nights(nights)
@@ -278,22 +337,32 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public void cancelBooking(String reference) {
 
-        Reservation r = reservationRepository
-                .findByBookingReference(reference)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Booking not found"));
+        Reservation r =
+                reservationRepository
+                        .findByBookingReference(reference)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Booking not found"
+                                ));
 
-        r.setStatus(ReservationStatus.CANCELLED);
+        r.setStatus(
+                ReservationStatus.CANCELLED
+        );
 
         reservationRepository.save(r);
     }
 
     @Override
-    public ReservationResponse getBookingByReference(String reference) {
+    public ReservationResponse getBookingByReference(
+            String reference
+    ) {
         return map(
-                reservationRepository.findByBookingReference(reference)
+                reservationRepository
+                        .findByBookingReference(reference)
                         .orElseThrow(() ->
-                                new ResourceNotFoundException("Booking not found"))
+                                new ResourceNotFoundException(
+                                        "Booking not found"
+                                ))
         );
     }
 
@@ -306,25 +375,42 @@ public class ReservationServiceImpl implements ReservationService {
 
         Room room = getRoom(roomNumber);
 
-        RoomPricing pricing = roomPricingRepository
-                .findByRoomType(room.getRoomType())
-                .orElseThrow(() ->
-                        new RuntimeException("Pricing not found"));
+        RoomPricing pricing =
+                roomPricingRepository
+                        .findByRoomType(
+                                room.getRoomType()
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Pricing not found"
+                                ));
 
-        double base = pricing.getPricePerNight().doubleValue();
+        double base =
+                pricing.getPricePerNight()
+                        .doubleValue();
+
         double total = 0;
         int days = 0;
 
         LocalDate current = checkIn;
 
         while (current.isBefore(checkOut)) {
-            total += pricingService.calculatePrice(base, current);
+            total += pricingService
+                    .calculatePrice(
+                            base,
+                            current
+                    );
+
             current = current.plusDays(1);
             days++;
         }
 
         return PricePreviewResponse.builder()
-                .pricePerNight(days == 0 ? (int) base : (int) (total / days))
+                .pricePerNight(
+                        days == 0
+                                ? (int) base
+                                : (int) (total / days)
+                )
                 .totalPrice((int) total)
                 .nights(days)
                 .build();
@@ -333,40 +419,65 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public Map<String, Long> getReservationStats() {
 
-        Map<String, Long> stats = new HashMap<>();
+        Map<String, Long> stats =
+                new HashMap<>();
 
-        stats.put("PENDING",
-                reservationRepository.countByStatus(ReservationStatus.PENDING));
+        stats.put(
+                "PENDING",
+                reservationRepository.countByStatus(
+                        ReservationStatus.PENDING
+                )
+        );
 
-        stats.put("CONFIRMED",
-                reservationRepository.countByStatus(ReservationStatus.CONFIRMED));
+        stats.put(
+                "CONFIRMED",
+                reservationRepository.countByStatus(
+                        ReservationStatus.CONFIRMED
+                )
+        );
 
-        stats.put("COMPLETED",
-                reservationRepository.countByStatus(ReservationStatus.COMPLETED));
+        stats.put(
+                "COMPLETED",
+                reservationRepository.countByStatus(
+                        ReservationStatus.COMPLETED
+                )
+        );
 
-        stats.put("CANCELLED",
-                reservationRepository.countByStatus(ReservationStatus.CANCELLED));
+        stats.put(
+                "CANCELLED",
+                reservationRepository.countByStatus(
+                        ReservationStatus.CANCELLED
+                )
+        );
 
         return stats;
     }
 
-    private void validateDates(LocalDate checkIn, LocalDate checkOut) {
+    private void validateDates(
+            LocalDate checkIn,
+            LocalDate checkOut
+    ) {
 
         if (checkIn == null || checkOut == null)
-            throw new IllegalArgumentException("Dates required");
+            throw new IllegalArgumentException(
+                    "Dates required"
+            );
 
         if (!checkIn.isBefore(checkOut))
-            throw new IllegalArgumentException("Invalid date range");
+            throw new IllegalArgumentException(
+                    "Invalid date range"
+            );
     }
 
     private Room getRoom(Integer roomNumber) {
 
-        return roomRepository.findByRoomNumber(roomNumber)
+        return roomRepository
+                .findByRoomNumber(roomNumber)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Room not found: " + roomNumber
-                        )
-                );
+                                "Room not found: "
+                                        + roomNumber
+                        ));
     }
 
     private void validateAvailability(
@@ -374,8 +485,14 @@ public class ReservationServiceImpl implements ReservationService {
             LocalDate checkIn,
             LocalDate checkOut
     ) {
-        if (!isRoomAvailable(roomNumber, checkIn, checkOut)) {
-            throw new BookingConflictException("Room already booked");
+        if (!isRoomAvailable(
+                roomNumber,
+                checkIn,
+                checkOut
+        )) {
+            throw new BookingConflictException(
+                    "Room already booked"
+            );
         }
     }
 
@@ -387,17 +504,36 @@ public class ReservationServiceImpl implements ReservationService {
                         .toUpperCase();
     }
 
-    private ReservationResponse map(Reservation r) {
+    private ReservationResponse map(
+            Reservation r
+    ) {
 
         return ReservationResponse.builder()
                 .id(r.getId())
-                .roomNumber(String.valueOf(r.getRoom().getRoomNumber()))
+                .roomNumber(
+                        String.valueOf(
+                                r.getRoom()
+                                        .getRoomNumber()
+                        )
+                )
                 .fullName(r.getFullName())
                 .email(r.getEmail())
                 .phone(r.getPhone())
                 .checkInDate(r.getCheckInDate())
                 .checkOutDate(r.getCheckOutDate())
-                .status(r.getStatus().name())
+                .status(
+                        r.getStatus()
+                                .name()
+                )
+                .paymentMode(
+                        r.getPaymentMode()
+                )
+                .createdBy(
+                        r.getUser() != null
+                                ? r.getUser()
+                                .getUsername()
+                                : "PUBLIC_BOOKING"
+                )
                 .build();
     }
 
@@ -406,12 +542,17 @@ public class ReservationServiceImpl implements ReservationService {
     public void completePastReservations() {
 
         List<Reservation> reservations =
-                reservationRepository.findReservationsToComplete();
+                reservationRepository
+                        .findReservationsToComplete();
 
         for (Reservation r : reservations) {
-            r.setStatus(ReservationStatus.COMPLETED);
+            r.setStatus(
+                    ReservationStatus.COMPLETED
+            );
         }
 
-        reservationRepository.saveAll(reservations);
+        reservationRepository.saveAll(
+                reservations
+        );
     }
 }

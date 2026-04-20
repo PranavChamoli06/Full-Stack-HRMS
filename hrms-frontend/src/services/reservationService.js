@@ -16,7 +16,9 @@ export const updateReservation = async (id, reservationData) => {
 };
 
 export const cancelReservation = async (id) => {
-  const response = await api.patch(`/reservations/${id}/status?status=CANCELLED`);
+  const response = await api.patch(
+    `/reservations/${id}/status?status=CANCELLED`
+  );
   return response.data;
 };
 

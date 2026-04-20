@@ -1,0 +1,224 @@
+.dashboard-shell {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #2d0b52, #160021, #09000f);
+  padding: 20px;
+}
+
+/* =========================
+   TOP NAVBAR
+========================= */
+.top-navbar {
+  height: 72px;
+  padding: 0 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.nav-brand {
+  color: white;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.top-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-link-item {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  transition: 0.3s ease;
+}
+
+.nav-link-item:hover {
+  color: #d7b9ff;
+}
+
+/* =========================
+   LOGOUT ICON BUTTON
+========================= */
+.logout-icon-btn {
+  width: 46px;
+  height: 46px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.10);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: 0.3s ease;
+}
+
+.logout-icon-btn:hover {
+  background: #ff4d6d;
+  transform: translateY(-2px);
+}
+
+/* =========================
+   MAIN CONTENT
+========================= */
+.dashboard-main {
+  margin-top: 22px;
+}
+
+.content-glass {
+  min-height: calc(100vh - 130px);
+  padding: 25px;
+  border-radius: 22px;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================
+   PAGE TITLES
+========================= */
+.page-title {
+  color: white;
+  font-size: 42px;
+  font-weight: 700;
+}
+
+/* =========================
+   KPI CARDS
+========================= */
+.glass-card-small {
+  width: 200px;
+  min-height: 110px;
+  padding: 18px;
+
+  border-radius: 18px;
+  color: white;
+
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+
+  transition: 0.3s ease;
+}
+
+.glass-card-small:hover {
+  transform: translateY(-4px);
+}
+
+.glass-card-small h6 {
+  font-size: 15px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.glass-card-small h3 {
+  font-size: 34px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* =========================
+   CHART CARDS
+========================= */
+.glass-chart-card {
+  padding: 20px;
+  border-radius: 20px;
+  color: white;
+
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.glass-chart-card h5 {
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+/* =========================
+   FILTER BUTTONS
+========================= */
+.btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: white !important;
+}
+
+.btn-outline-light:hover,
+.btn-outline-light:focus,
+.btn-outline-light:active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: white !important;
+  box-shadow: none !important;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 992px) {
+  .top-navbar {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 15px;
+    padding: 18px;
+  }
+
+  .top-nav-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 34px;
+  }
+
+  .glass-card-small {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-shell {
+    padding: 12px;
+  }
+
+  .content-glass {
+    padding: 18px;
+  }
+
+  .nav-brand {
+    font-size: 24px;
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+}

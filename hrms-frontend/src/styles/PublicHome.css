@@ -1,0 +1,122 @@
+.public-home-page {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* Dark overlay like login page */
+.public-home-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Center Glass Card */
+.public-home-card {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+  max-width: 620px;
+  padding: 55px 45px;
+  text-align: center;
+
+  border-radius: 24px;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+/* Heading */
+.public-home-card h1 {
+  color: white;
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+/* Paragraph */
+.public-home-card p {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 18px;
+  margin-bottom: 35px;
+}
+
+/* Buttons Row */
+.public-home-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Shared Button */
+.btn-start-booking,
+.btn-view-booking {
+  min-width: 180px;
+  height: 48px;
+
+  border: none;
+  border-radius: 12px;
+
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+/* Primary */
+.btn-start-booking {
+  background: #8e63ff;
+}
+
+.btn-start-booking:hover {
+  background: #7448f0;
+  transform: translateY(-2px);
+}
+
+/* Secondary */
+.btn-view-booking {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-view-booking:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .public-home-card {
+    padding: 40px 25px;
+  }
+
+  .public-home-card h1 {
+    font-size: 30px;
+  }
+
+  .public-home-card p {
+    font-size: 16px;
+  }
+
+  .btn-start-booking,
+  .btn-view-booking {
+    width: 100%;
+  }
+}

@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { login } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import loginBg from "../assets/login-bg.jpg";
+import "../styles/LoginPage.css";
 
 function LoginPage() {
-
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // 🔥 Auto redirect if already logged in
+  // Auto redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -28,61 +29,70 @@ function LoginPage() {
     try {
       const data = await login(username, password);
 
-      console.log("Login success:", data);
-
       localStorage.setItem("token", data.accessToken);
       localStorage.setItem("role", data.role);
 
-      // 🔥 ROLE-BASED REDIRECT
       if (data.role === "ADMIN" || data.role === "MANAGER") {
         navigate("/dashboard");
       } else {
         navigate("/reservations");
       }
-
     } catch (error) {
-      console.error("Login failed", error);
       alert("Invalid credentials");
     }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100">
-
-      <div className="card p-4 shadow" style={{ width: "350px" }}>
-
-        <h3 className="text-center mb-3">HRMS Login</h3>
-
-        <form onSubmit={handleLogin}>
-
-          <div className="mb-3">
-            <label className="form-label">Username</label>
-            <input
-              className="form-control"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+    <div className="login-page">
+      <div className="login-wrapper">
+        
+        <div
+          className="left-panel"
+          style={{ backgroundImage: `url(${loginBg})` }}
+        >
+          <div className="brand-overlay">
+            <h2>Login Portal</h2>
+            <p>
+              Smart Reservations,
+              <br />
+              Seamless Hospitality
+            </p>
           </div>
+        </div>
 
-          <div className="mb-3">
-            <label className="form-label">Password</label>
-            <input
-              className="form-control"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        <div className="right-panel">
+          <h2 className="login-title">Please Login 😊</h2>
 
-          <button className="btn btn-primary w-100" type="submit">
-            Login
-          </button>
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label className="form-label text-light">Username</label>
+              <input
+                className="form-control custom-input"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
 
-        </form>
+            <div className="mb-4">
+              <label className="form-label text-light">Password</label>
+              <input
+                className="form-control custom-input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button className="btn login-btn w-100" type="submit">
+              Login
+            </button>
+          </form>
+        </div>
 
       </div>
-
     </div>
   );
 }
