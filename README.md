@@ -485,7 +485,7 @@ npm start
 
 ### Razorpay Checkout
 
-![Razorpay Payment](assets/screenshots/razorpay-payment.png)
+![Razorpay Payment](assets/screenshots/razorpay-popup.png)
 
 ### Payment Successful
 
