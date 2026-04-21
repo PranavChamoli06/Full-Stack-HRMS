@@ -19,7 +19,8 @@ HRMS is a complete system for managing:
 * Users and roles
 * Dynamic pricing strategies
 * Booking lifecycle automation
-* **Asynchronous notification system (Email + SMS)**
+* Asynchronous notification system (**Email + SMS**)
+* Online + Offline payment workflows
 * Analytics dashboards
 
 The system is designed with:
@@ -29,13 +30,14 @@ The system is designed with:
 * Role-based access control
 * Clean layered backend design
 * Event-driven + async processing
+* Real-time dashboard synchronization
 * Interactive analytics dashboard
 
 ---
 
 # 🏗 Full-Stack Architecture
 
-```
+```text
 React Frontend (UI + Routing + Charts)
         │
         │ Axios (REST API Calls)
@@ -70,31 +72,37 @@ Full reservation lifecycle management:
 * Update reservation
 * Delete reservation
 * Pagination support
+* Live dashboard sync
 
 ### Booking Modes
 
-**🔹 Public Booking (Customer Flow)**
+## 🔹 Public Booking (Customer Flow)
 
 * Search rooms by date
 * View dynamic pricing
 * Book without login
-* Receive booking confirmation (email + SMS)
+* Choose payment mode
+* Prepaid booking flow
+* Pay at hotel option
+* Receive booking confirmation (Email + SMS)
 * View booking via reference
 * Cancel booking
 
-**🔹 Admin Booking (On-Prem Flow)**
+## 🔹 Admin Booking (On-Prem Flow)
 
 * Create reservation manually
 * Edit reservation
 * Cancel reservation
 * Calendar-based booking visibility
 * Pagination & dashboard management
+* Front desk operations support
 
 ### Business Rules
 
 * Check-in date must be before check-out date
 * Prevent overlapping room bookings
 * Reservation status transitions enforced
+* Payment mode tracked per reservation
 
 ---
 
@@ -117,13 +125,46 @@ Integrated in:
 
 Reservation states:
 
+```text
 PENDING → CONFIRMED → COMPLETED
-↘ CANCELLED
+        ↘ CANCELLED
+```
 
 ### Automation
 
 * Reservations automatically move to **COMPLETED** after checkout date
 * Implemented using scheduled backend jobs
+
+### Status Visibility
+
+Reservation dashboard displays:
+
+* PENDING
+* CONFIRMED
+* CANCELLED
+* COMPLETED
+
+---
+
+# 💳 Payment Management
+
+Supports multiple payment modes:
+
+* PREPAID
+* PAY_AT_HOTEL
+
+### Public Payment Flow
+
+* Razorpay payment gateway integration
+* Secure prepaid checkout
+* Booking confirmation after payment success
+
+### Operational Benefit
+
+Dashboard shows payment mode for each booking so staff can instantly know:
+
+* Already paid online
+* Payment pending at check-in
 
 ---
 
@@ -133,7 +174,7 @@ A **fault-tolerant, asynchronous notification system** ensures reliable communic
 
 ### 🔁 Notification Flow
 
-```
+```text
 Booking Created
      ↓
 Async Notification Trigger
@@ -150,7 +191,7 @@ Retry Scheduler (FAILED → SUCCESS)
 ### 🔹 Features
 
 * Email integration (SMTP – Gmail)
-* SMS integration (Twilio)
+* SMS integration
 * Async processing using `@Async`
 * Multi-channel delivery
 
@@ -164,18 +205,6 @@ Retry Scheduler (FAILED → SUCCESS)
   * status
   * error_message
   * timestamp
-
-Lifecycle:
-
-```
-PENDING → SUCCESS / FAILED
-```
-
-### 🔹 Failure Handling
-
-* Failures are logged
-* Error messages captured
-* System remains stable
 
 ### 🔹 Retry Mechanism
 
@@ -197,6 +226,10 @@ Admin capabilities:
 * View all users
 * Create new users
 * Update user roles
+* View all reservations
+* Track public + admin bookings
+* Monitor payment modes
+* Manage lifecycle statuses
 
 ---
 
@@ -214,6 +247,7 @@ Admin capabilities:
 * Reservation trends
 * Revenue analytics
 * Occupancy analytics
+* Live synced reservation records
 
 ---
 
@@ -229,6 +263,7 @@ Admin capabilities:
 
 * Preview total price
 * Price per night + total
+* Number of nights
 * Powered by `/price-preview` API
 
 ---
@@ -240,8 +275,10 @@ Admin capabilities:
 * Global exception handling
 * Flyway migrations
 * Swagger docs
-* **Async processing (`@Async`)**
-* **Scheduler jobs (retry + lifecycle)**
+* Async processing (`@Async`)
+* Scheduler jobs (retry + lifecycle)
+* DTO mapping
+* Frontend/backend sync fixes
 
 ---
 
@@ -250,19 +287,40 @@ Admin capabilities:
 * Weekday → Base
 * Weekend → +20%
 * Festival → Override
+* Per-day pricing aggregation
 
 ---
 
 # 🗄 Database
 
 * MySQL
-* Tables:
 
-  * Users
-  * Reservations
-  * Rooms
-  * SpecialPricing
-  * **NotificationLog**
+### Tables:
+
+* Users
+* Reservations
+* Rooms
+* SpecialPricing
+* NotificationLog
+* Payments
+* Audit Logs
+* Customers
+
+---
+
+## 🧩 Database Design
+
+## ER Diagram
+
+![HRMS Database ER Diagram](assets/screenshots/er-diagram.png)
+
+### Key Relationships
+
+* One user can manage multiple reservations
+* One customer can create multiple reservations
+* One reservation maps to one room
+* One reservation can have one payment record
+* Pricing modules support room-based and date-based pricing
 
 ---
 
@@ -290,10 +348,12 @@ Excludes:
 
 ## 🔁 Booking Flow
 
-1. Create → PENDING
-2. Confirm → CONFIRMED
-3. Auto → COMPLETED
-4. Cancel → CANCELLED
+1. Create reservation
+2. Select payment mode
+3. Confirm booking
+4. Notification sent
+5. Stay completed automatically
+6. Cancel if needed
 
 ---
 
@@ -301,22 +361,37 @@ Excludes:
 
 ### Authentication
 
-```
+```text
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 ```
 
 ### Reservations
 
-```
+```text
 GET /api/v1/reservations
 POST /api/v1/reservations
+PUT /api/v1/reservations/{id}
+DELETE /api/v1/reservations/{id}
 ```
 
 ### Pricing
 
-```
+```text
 GET /api/v1/admin/pricing
+```
+
+### Price Preview
+
+```text
+GET /price-preview
+```
+
+### Payments
+
+```text
+POST /payment/create-order
+POST /payment/verify
 ```
 
 ---
@@ -340,21 +415,81 @@ npm start
 
 ![Dashboard Overview](assets/screenshots/dashboard.png)
 
-## 🛎 Reservations Module
-
-![Reservations Table](assets/screenshots/reservation-table.png)
-![Reservation Form](assets/screenshots/reservation-form.png)
-
 ## 👥 Admin Panel
 
-![Admin Panel](assets/screenshots/admin-panel.png)
-![Role Update](assets/screenshots/admin-roles.png)
+### Active Users
+
+![Active Users](assets/screenshots/active-users.png)
+
+### User Creation
+
+![User Creation](assets/screenshots/user-creation.png)
+
+### Pricing Management
+
+![Pricing Management](assets/screenshots/admin-pricing-management.png)
 
 ## 📈 Analytics Charts
 
+### Reservation Trends
+
 ![Reservation Trends](assets/screenshots/chart-reservations.png)
+
+### Revenue Chart
+
 ![Revenue Chart](assets/screenshots/chart-revenue.png)
+
+### Occupancy Chart
+
 ![Occupancy Chart](assets/screenshots/chart-occupancy.png)
+
+---
+
+## 🌐 Public Booking Module
+
+### Public Booking Home
+
+![Public Booking Home](assets/screenshots/public-home.png)
+
+### Room Search
+
+![Room Search](assets/screenshots/room-search.png)
+
+### Booking Page
+
+![Booking Page](assets/screenshots/booking-page.png)
+
+### Booking Confirmation
+
+![Booking Confirmation](assets/screenshots/booking-confirmation.png)
+
+### View Booking
+
+![View Booking](assets/screenshots/view-booking.png)
+
+---
+
+## 🏨 On-Premise Booking Module
+
+### Reservations Table
+
+![Reservations Table](assets/screenshots/on-premise-reservation-table.png)
+
+### Reservation Form
+
+![Reservation Form](assets/screenshots/on-premise-reservation-form.png)
+
+---
+
+## 💳 Razorpay Payment Module
+
+### Razorpay Checkout
+
+![Razorpay Payment](assets/screenshots/razorpay-payment.png)
+
+### Payment Successful
+
+![Payment Success](assets/screenshots/payment-successful.png)
 
 ---
 
@@ -365,11 +500,15 @@ npm start
 * Role-based access
 * Reservation lifecycle
 * Dynamic pricing engine
+* Public + Admin booking flows
+* Razorpay payment integration
+* Payment mode visibility
 * Async notification system
 * Retry + logging mechanism
 * Calendar visualization
 * Email + SMS integration
 * Availability validation
+* Live dashboard synchronization
 
 ---
 
@@ -380,16 +519,20 @@ Before running the project, set:
 ```bash
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
+RAZORPAY_KEY=your_key
+RAZORPAY_SECRET=your_secret
+MAIL_USERNAME=your_email
+MAIL_PASSWORD=your_password
 ```
 
-### Windows:
+### Windows
 
 ```bash
 setx DB_USERNAME "root"
 setx DB_PASSWORD "yourpassword"
 ```
 
-### Mac/Linux:
+### Mac/Linux
 
 ```bash
 export DB_USERNAME=root
