@@ -17,7 +17,6 @@ function ReservationsPage() {
   const formRef = useRef(null);
 
   const [reservations, setReservations] = useState([]);
-  const [allReservations, setAllReservations] = useState([]);
 
   const [roomNumber, setRoomNumber] = useState("");
   const [checkInDate, setCheckInDate] = useState("");
@@ -41,7 +40,6 @@ function ReservationsPage() {
   const fetchReservations = async () => {
     try {
       const data = await getReservations(page, size);
-
       setReservations(data.content || []);
       setTotalPages(data.totalPages || 1);
       setTotalElements(data.totalElements || 0);
@@ -50,20 +48,14 @@ function ReservationsPage() {
     }
   };
 
-  const fetchAllReservations = async () => {
-    try {
-      const data = await getReservations(0, 1000);
-      setAllReservations(data.content || []);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
-    fetchReservations();
-    fetchAllReservations();
+    const loadData = async () => {
+      await fetchReservations();
+    };
 
-    const interval = setInterval(fetchReservations, 3000);
+    loadData();
+
+    const interval = setInterval(loadData, 3000);
 
     return () => clearInterval(interval);
   }, [page]);
@@ -124,7 +116,6 @@ function ReservationsPage() {
       );
 
       fetchReservations();
-      fetchAllReservations();
     } catch (error) {
       Swal.fire("Error", "Unable to cancel", "error");
     }
@@ -231,7 +222,6 @@ function ReservationsPage() {
 
       resetForm();
       fetchReservations();
-      fetchAllReservations();
     } catch (error) {
       if (error.response?.status === 409) {
         Swal.fire(
@@ -392,71 +382,27 @@ function ReservationsPage() {
                 const status = getStatus(r);
 
                 return (
-                  <tr
-                    key={r.id}
-                    style={{
-                      opacity:
-                        status === "CANCELLED"
-                          ? 0.55
-                          : 1
-                    }}
-                  >
+                  <tr key={r.id}>
                     <td>{r.id}</td>
-
+                    <td>{r.roomNumber || r.room_number}</td>
+                    <td>{r.fullName || r.full_name}</td>
                     <td>
-                      {r.roomNumber ||
-                        r.room_number}
+                      {getCheckIn(r)} → {getCheckOut(r)}
                     </td>
-
-                    <td>
-                      {r.fullName ||
-                        r.full_name}
+                    <td>{formatPaymentMode(r)}</td>
+                    <td className={getStatusClass(status)}>
+                      {status}
                     </td>
-
-                    <td>
-                      {getCheckIn(r)} →{" "}
-                      {getCheckOut(r)}
-                    </td>
-
-                    <td>
-                      {formatPaymentMode(r)}
-                    </td>
-
-                    <td>
-                      <span
-                        className={getStatusClass(
-                          status
-                        )}
-                      >
-                        {status}
-                      </span>
-                    </td>
-
                     <td>
                       <button
                         className="btn btn-success btn-sm me-2"
-                        disabled={
-                          status ===
-                          "CANCELLED"
-                        }
-                        onClick={() =>
-                          handleEdit(r)
-                        }
+                        onClick={() => handleEdit(r)}
                       >
                         Edit
                       </button>
-
                       <button
                         className="btn btn-danger btn-sm"
-                        disabled={
-                          status ===
-                          "CANCELLED"
-                        }
-                        onClick={() =>
-                          handleCancel(
-                            r.id
-                          )
-                        }
+                        onClick={() => handleCancel(r.id)}
                       >
                         Cancel
                       </button>
@@ -465,13 +411,9 @@ function ReservationsPage() {
                 );
               })}
 
-              {reservations.length ===
-                0 && (
+              {reservations.length === 0 && (
                 <tr>
-                  <td
-                    colSpan="7"
-                    className="text-center"
-                  >
+                  <td colSpan="7" className="text-center">
                     No Reservations Found
                   </td>
                 </tr>
@@ -483,21 +425,15 @@ function ReservationsPage() {
         <button
           className="btn btn-warning me-2"
           disabled={page === 0}
-          onClick={() =>
-            setPage(page - 1)
-          }
+          onClick={() => setPage(page - 1)}
         >
           Prev
         </button>
 
         <button
           className="btn btn-success"
-          disabled={
-            page >= totalPages - 1
-          }
-          onClick={() =>
-            setPage(page + 1)
-          }
+          disabled={page >= totalPages - 1}
+          onClick={() => setPage(page + 1)}
         >
           Next
         </button>
