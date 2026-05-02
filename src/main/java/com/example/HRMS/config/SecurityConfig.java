@@ -2,6 +2,7 @@ package com.example.HRMS.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -33,10 +34,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> {})  // Enable CORS
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
-                .headers(headers ->
-                        headers.frameOptions(frame -> frame.disable()))
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex ->
@@ -44,17 +44,28 @@ public class SecurityConfig {
                                 .accessDeniedHandler(accessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+
+                        // ✅ PUBLIC APIs (explicit + safe)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/public/**").permitAll()
+
+                        // ✅ AUTH APIs
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+
+                        // ✅ SWAGGER + ACTUATOR
                         .requestMatchers(
-                                "/api/v1/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/actuator/health",
-                                "/actuator/info",
-                                "/api/v1/ai/**",
-                                "/api/v1/public/**",
-                                "/api/v1/payment/**"
+                                "/actuator/info"
                         ).permitAll()
+
+                        // ✅ OPTIONAL PUBLIC FEATURES
+                        .requestMatchers("/api/v1/ai/**").permitAll()
+                        .requestMatchers("/api/v1/payment/**").permitAll()
+
+                        // 🔒 EVERYTHING ELSE SECURED
                         .anyRequest().authenticated()
                 );
 
@@ -63,7 +74,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 
     @Bean
     public AuthenticationManager authenticationManager(
