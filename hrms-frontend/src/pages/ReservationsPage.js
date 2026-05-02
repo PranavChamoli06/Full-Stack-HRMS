@@ -37,7 +37,7 @@ function ReservationsPage() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // ✅ FIXED: useCallback added
+  // ✅ FIX: memoized function
   const fetchReservations = useCallback(async () => {
     try {
       const data = await getReservations(page, size);
@@ -49,7 +49,7 @@ function ReservationsPage() {
     }
   }, [page, size]);
 
-  // ✅ FIXED: dependency handled properly
+  // ✅ FIX: proper dependency usage
   useEffect(() => {
     fetchReservations();
 
