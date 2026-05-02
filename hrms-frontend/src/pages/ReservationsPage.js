@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Swal from "sweetalert2";
@@ -37,7 +37,8 @@ function ReservationsPage() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const fetchReservations = async () => {
+  // ✅ FIXED: useCallback added
+  const fetchReservations = useCallback(async () => {
     try {
       const data = await getReservations(page, size);
       setReservations(data.content || []);
@@ -46,19 +47,16 @@ function ReservationsPage() {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [page, size]);
 
+  // ✅ FIXED: dependency handled properly
   useEffect(() => {
-    const loadData = async () => {
-      await fetchReservations();
-    };
+    fetchReservations();
 
-    loadData();
-
-    const interval = setInterval(loadData, 3000);
+    const interval = setInterval(fetchReservations, 3000);
 
     return () => clearInterval(interval);
-  }, [page]);
+  }, [fetchReservations]);
 
   const getCheckIn = (r) => r.checkInDate || r.check_in_date;
   const getCheckOut = (r) => r.checkOutDate || r.check_out_date;
@@ -123,11 +121,7 @@ function ReservationsPage() {
 
   const handlePreview = async () => {
     if (!roomNumber || !checkInDate || !checkOutDate) {
-      Swal.fire(
-        "Error",
-        "Fill all fields first",
-        "warning"
-      );
+      Swal.fire("Error", "Fill all fields first", "warning");
       return;
     }
 
@@ -138,27 +132,15 @@ function ReservationsPage() {
         checkOutDate
       });
 
-      Swal.fire(
-        "Price Preview",
-        `₹ ${res.data}`,
-        "info"
-      );
+      Swal.fire("Price Preview", `₹ ${res.data}`, "info");
     } catch {
-      Swal.fire(
-        "Error",
-        "Preview failed",
-        "error"
-      );
+      Swal.fire("Error", "Preview failed", "error");
     }
   };
 
   const handleCheckAvailability = async () => {
     if (!roomNumber || !checkInDate || !checkOutDate) {
-      Swal.fire(
-        "Error",
-        "Fill all fields first",
-        "warning"
-      );
+      Swal.fire("Error", "Fill all fields first", "warning");
       return;
     }
 
@@ -169,17 +151,9 @@ function ReservationsPage() {
         checkOutDate
       });
 
-      Swal.fire(
-        "Available",
-        "Room is available",
-        "success"
-      );
+      Swal.fire("Available", "Room is available", "success");
     } catch {
-      Swal.fire(
-        "Not Available",
-        "Room already booked",
-        "error"
-      );
+      Swal.fire("Not Available", "Room already booked", "error");
     }
   };
 
@@ -214,27 +188,15 @@ function ReservationsPage() {
         await createReservation(payload);
       }
 
-      Swal.fire(
-        "Success",
-        "Reservation saved successfully",
-        "success"
-      );
+      Swal.fire("Success", "Reservation saved successfully", "success");
 
       resetForm();
       fetchReservations();
     } catch (error) {
       if (error.response?.status === 409) {
-        Swal.fire(
-          "Conflict",
-          error.response.data,
-          "warning"
-        );
+        Swal.fire("Conflict", error.response.data, "warning");
       } else {
-        Swal.fire(
-          "Error",
-          "Something went wrong",
-          "error"
-        );
+        Swal.fire("Error", "Something went wrong", "error");
       }
     }
   };
@@ -249,106 +211,73 @@ function ReservationsPage() {
 
   return (
     <div>
-      <h2 className="page-title mb-4">
-        Reservations
-      </h2>
+      <h2 className="page-title mb-4">Reservations</h2>
 
       <div className="glass-chart-card mb-4">
         <Calendar
           value={selectedDate}
-          onChange={(date) =>
-            setSelectedDate(date)
-          }
+          onChange={(date) => setSelectedDate(date)}
         />
       </div>
 
-      <div
-        ref={formRef}
-        className="glass-chart-card mb-4"
-      >
+      <div ref={formRef} className="glass-chart-card mb-4">
         <form onSubmit={handleSubmit}>
           <input
             placeholder="Room Number"
             value={roomNumber}
-            onChange={(e) =>
-              setRoomNumber(e.target.value)
-            }
+            onChange={(e) => setRoomNumber(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <input
             type="date"
             value={checkInDate}
-            onChange={(e) =>
-              setCheckInDate(e.target.value)
-            }
+            onChange={(e) => setCheckInDate(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <input
             type="date"
             value={checkOutDate}
-            onChange={(e) =>
-              setCheckOutDate(e.target.value)
-            }
+            onChange={(e) => setCheckOutDate(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <input
             placeholder="Guest Name"
             value={guestName}
-            onChange={(e) =>
-              setGuestName(e.target.value)
-            }
+            onChange={(e) => setGuestName(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <input
             placeholder="Guest Email"
             value={guestEmail}
-            onChange={(e) =>
-              setGuestEmail(e.target.value)
-            }
+            onChange={(e) => setGuestEmail(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <input
             placeholder="Guest Phone"
             value={guestPhone}
-            onChange={(e) =>
-              setGuestPhone(e.target.value)
-            }
+            onChange={(e) => setGuestPhone(e.target.value)}
             className="form-control glass-input mb-2"
           />
 
           <select
             value={paymentMode}
-            onChange={(e) =>
-              setPaymentMode(e.target.value)
-            }
+            onChange={(e) => setPaymentMode(e.target.value)}
             className="form-control glass-input mb-3"
           >
-            <option value="PAY_AT_HOTEL">
-              Pay at Hotel
-            </option>
-            <option value="PREPAID">
-              Prepaid
-            </option>
+            <option value="PAY_AT_HOTEL">Pay at Hotel</option>
+            <option value="PREPAID">Prepaid</option>
           </select>
 
-          <button
-            type="button"
-            className="btn btn-info me-2"
-            onClick={handlePreview}
-          >
+          <button type="button" className="btn btn-info me-2" onClick={handlePreview}>
             Preview
           </button>
 
-          <button
-            type="button"
-            className="btn btn-warning me-2"
-            onClick={handleCheckAvailability}
-          >
+          <button type="button" className="btn btn-warning me-2" onClick={handleCheckAvailability}>
             Check Availability
           </button>
 
@@ -359,9 +288,7 @@ function ReservationsPage() {
       </div>
 
       <div className="glass-chart-card">
-        <h4 className="mb-3">
-          Total: {totalElements}
-        </h4>
+        <h4 className="mb-3">Total: {totalElements}</h4>
 
         <div className="table-responsive">
           <table className="table table-dark table-hover align-middle custom-table">
