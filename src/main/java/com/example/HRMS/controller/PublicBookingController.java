@@ -17,7 +17,7 @@ public class PublicBookingController {
     private final ReservationService reservationService;
 
     // ✅ 1. GET AVAILABLE ROOMS
-    @GetMapping("/rooms/available")
+    @GetMapping(value = "/rooms/available", produces = "application/json")
     public List<RoomResponse> getAvailableRooms(
             @RequestParam LocalDate checkIn,
             @RequestParam LocalDate checkOut
